@@ -1,0 +1,123 @@
+const CLAN_IDS = ['crushers', 'northwestern', 'mexico', 'tranqui'];
+
+function doGet(e)  { return handle(e); }
+function doPost(e) { return handle(e); }
+
+function handle(e) {
+  const p = e.parameter;
+  let result;
+  try {
+    switch (p.action) {
+      case 'getAll':       result = getAll();                                        break;
+      case 'saveMembers':  saveMembersSheet(p.clan, JSON.parse(p.members));result={ok:true}; break;
+      case 'saveWar':      saveWarSheet(p.clan, JSON.parse(p.war));        result={ok:true}; break;
+      case 'saveRotation': saveRotationSheet(JSON.parse(p.rotation));      result={ok:true}; break;
+      case 'saveActivity': saveActivitySheet(JSON.parse(p.entry));         result={ok:true}; break;
+      default:             result = { error: 'Acción desconocida: ' + p.action };
+    }
+  } catch(err) {
+    result = { error: err.message };
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+// ── getAll ────────────────────────────────────────────────────
+// Devuelve todos los datos: miembros, guerras, rotaciones y usuarios
+function getAll() {
+  const result = {};
+
+  // Clanes
+  CLAN_IDS.forEach(id => {
+    const ms = getOrCreate('Miembros_' + id, MEMBER_HEADERS);
+    const ws = getOrCreate('Guerras_'  + id, WAR_HEADERS);
+    result[id] = {
+      members: sheetToObjects(ms, MEMBER_HEADERS),
+      wars:    sheetToObjects(ws, WAR_HEADERS),
+    };
+  });
+
+  // Rotaciones
+  const rs = getOrCreate('Rotaciones', ROT_HEADERS);
+  result.rotations = sheetToObjects(rs, ROT_HEADERS);
+
+  // Usuarios (solo devuelve campos públicos — sin contraseñas en texto plano si quieres más seguridad)
+  // Por simplicidad los devolvemos completos; en producción podrías hashear las contraseñas
+  const us = getOrCreate('Usuarios', USER_HEADERS);
+  result.users = sheetToObjects(us, USER_HEADERS);
+
+  return result;
+}
+
+// ── Miembros ─────────────────────────────────────────────────
+const MEMBER_HEADERS = [
+  'id', 'name', 'tag', 'role',
+  'warTotal', 'warAttacks',
+  'cwlTotal', 'cwlAtkTotal', 'cwlMirrors',
+  'donTotal'
+];
+
+function saveMembersSheet(clan, members) {
+  const sheet = getOrCreate('Miembros_' + clan, MEMBER_HEADERS);
+  clearData(sheet);
+  members.forEach(m => {
+    sheet.appendRow(MEMBER_HEADERS.map(h => m[h] !== undefined ? m[h] : ''));
+  });
+}
+
+// ── Guerras ───────────────────────────────────────────────────
+const WAR_HEADERS = ['date', 'type', 'result', 'starsUs', 'starsThem'];
+
+function saveWarSheet(clan, war) {
+  const sheet = getOrCreate('Guerras_' + clan, WAR_HEADERS);
+  sheet.appendRow(WAR_HEADERS.map(h => war[h] || ''));
+}
+
+// ── Rotaciones ────────────────────────────────────────────────
+const ROT_HEADERS = ['date', 'tag', 'name', 'from', 'to', 'don'];
+
+function saveRotationSheet(rot) {
+  const sheet = getOrCreate('Rotaciones', ROT_HEADERS);
+  sheet.appendRow(ROT_HEADERS.map(h => rot[h] || ''));
+}
+
+// ── Actividad ─────────────────────────────────────────────────
+const ACTIVITY_HEADERS = ['action', 'clan', 'user', 'date'];
+
+function saveActivitySheet(entry) {
+  const sheet = getOrCreate('Actividad', ACTIVITY_HEADERS);
+  sheet.appendRow(ACTIVITY_HEADERS.map(h => entry[h] || ''));
+}
+
+// ── Usuarios ─────────────────────────────────────────────────
+// La pestaña Usuarios tiene esta estructura. Edítala directamente en Sheets.
+const USER_HEADERS = ['user', 'pass', 'role', 'name', 'clan'];
+
+function ensureDefaultUsers() {
+  const sheet = getOrCreate('Usuarios', USER_HEADERS);
+  if (sheet.getLastRow() <= 1) {
+    const defaults = [
+      ['turpial', 'nexus2024', 'super',  'Turpial',  ''],
+      ['lider1',  'clan1234',  'leader', 'Líder 1',  'crushers'],
+      ['lider2',  'clan1234',  'leader', 'Líder 2',  'northwestern'],
+      ['lider3',  'clan1234',  'leader', 'Líder 3',  'mexico'],
+      ['lider4',  'clan1234',  'leader', 'Líder 4',  'tranqui'],
+    ];
+    defaults.forEach(row => sheet.appendRow(row));
+  }
+}
+
+// ── Helpers ───────────────────────────────────────────────────
+function getOrCreate(name, headers) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let sheet = ss.getSheetByName(name);
+  if (!sheet) {
+    sheet = ss.insertSheet(name);
+    const hRange = sheet.getRange(1, 1, 1, headers.length);
+    hRange.setValues([headers]);
+    hRange.setFontWeight('bold').setBackground('#7F77DD').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  }
+  return sheet;
+}
