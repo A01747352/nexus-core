@@ -1,25 +1,31 @@
 const CLAN_IDS = ['crushers', 'northwestern', 'mexico', 'tranqui'];
 
-function doGet(e)  { return handle(e); }
-function doPost(e) { return handle(e); }
+function doGet(e)     { return handle(e); }
+function doPost(e)    { return handle(e); }
+function doOptions(e) { return buildResponse('{}'); } // Preflight CORS
 
 function handle(e) {
   const p = e.parameter;
   let result;
   try {
     switch (p.action) {
-      case 'getAll':       result = getAll();                                        break;
-      case 'saveMembers':  saveMembersSheet(p.clan, JSON.parse(p.members));result={ok:true}; break;
-      case 'saveWar':      saveWarSheet(p.clan, JSON.parse(p.war));        result={ok:true}; break;
-      case 'saveRotation': saveRotationSheet(JSON.parse(p.rotation));      result={ok:true}; break;
-      case 'saveActivity': saveActivitySheet(JSON.parse(p.entry));         result={ok:true}; break;
+      case 'getAll':       result = getAll();                                               break;
+      case 'saveMembers':  saveMembersSheet(p.clan, JSON.parse(p.members)); result={ok:true}; break;
+      case 'saveWar':      saveWarSheet(p.clan, JSON.parse(p.war));         result={ok:true}; break;
+      case 'saveRotation': saveRotationSheet(JSON.parse(p.rotation));       result={ok:true}; break;
+      case 'saveActivity': saveActivitySheet(JSON.parse(p.entry));          result={ok:true}; break;
       default:             result = { error: 'Acción desconocida: ' + p.action };
     }
   } catch(err) {
     result = { error: err.message };
   }
+  return buildResponse(JSON.stringify(result));
+}
+
+// Respuesta con headers CORS — necesario para requests desde Vercel
+function buildResponse(body) {
   return ContentService
-    .createTextOutput(JSON.stringify(result))
+    .createTextOutput(body)
     .setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -120,4 +126,35 @@ function getOrCreate(name, headers) {
     sheet.setFrozenRows(1);
   }
   return sheet;
+}
+
+function clearData(sheet) {
+  const last = sheet.getLastRow();
+  if (last > 1) sheet.deleteRows(2, last - 1);
+}
+
+function sheetToObjects(sheet, headers) {
+  const rows = sheet.getDataRange().getValues();
+  if (rows.length <= 1) return [];
+  return rows.slice(1).map(row => {
+    const obj = {};
+    headers.forEach((h, i) => {
+      const v = row[i];
+      // Convertir números guardados como string
+      obj[h] = (v !== '' && !isNaN(v)) ? Number(v) : v;
+    });
+    return obj;
+  }).filter(obj => obj[headers[0]] !== '' && obj[headers[0]] !== undefined);
+}
+
+// ── Setup inicial (ejecutar manualmente una vez si quieres) ───
+function setup() {
+  CLAN_IDS.forEach(id => {
+    getOrCreate('Miembros_' + id, MEMBER_HEADERS);
+    getOrCreate('Guerras_'  + id, WAR_HEADERS);
+  });
+  getOrCreate('Rotaciones', ROT_HEADERS);
+  getOrCreate('Actividad',  ACTIVITY_HEADERS);
+  ensureDefaultUsers();
+  SpreadsheetApp.getUi().alert('NEXUS CORE configurado correctamente. Las pestañas están listas.');
 }
