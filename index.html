@@ -1,11 +1,455 @@
-<!doctype html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Document</title>
-    </head>
-    <body>
-        <h1>Hello, world!</h1>
-    </body>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="NEXUS CORE — Panel de gestión para clanes de Clash of Clans">
+  <meta name="theme-color" content="#080612">
+  <title>NEXUS CORE</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+     LOGIN
+══════════════════════════════════════════════ -->
+<div id="login-screen" class="login-wrap">
+  <div class="login-card">
+
+    <div class="login-logo">
+      <div class="login-logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/></svg>
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700">NEXUS CORE</div>
+        <div style="font-size:12px;color:var(--text3)">Command Center</div>
+      </div>
+    </div>
+
+    <div class="login-title">Bienvenido</div>
+    <div class="login-hint">Inicia sesión con tus credenciales de líder.</div>
+
+    <div id="login-err" class="login-err">Usuario o contraseña incorrectos.</div>
+
+    <div class="fg" style="margin-bottom:10px">
+      <label class="fl">Usuario</label>
+      <input class="fi" type="text" id="l-user" placeholder="ej. turpial" autocomplete="username">
+    </div>
+    <div class="fg" style="margin-bottom:20px">
+      <label class="fl">Contraseña</label>
+      <input class="fi" type="password" id="l-pass" placeholder="••••••••" autocomplete="current-password">
+    </div>
+
+    <button class="btn btn-primary"
+            style="width:100%;justify-content:center;padding:11px;font-size:14px"
+            onclick="App.login()">
+      Entrar
+    </button>
+
+    <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:14px">
+      Los credenciales se gestionan en la pestaña
+      <code>Usuarios</code> de Google Sheets.
+    </p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     APP SHELL
+══════════════════════════════════════════════ -->
+<div id="app-shell" style="display:none">
+<div class="app">
+
+  <!-- ── Topbar ── -->
+  <header class="topbar">
+    <button class="icon-btn mobile-toggle" onclick="App.toggleSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+      </svg>
+    </button>
+
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/></svg>
+    </div>
+    <span class="logo-name">NEXUS CORE</span>
+
+    <div class="topbar-gap"></div>
+
+    <div id="sync-text" class="sync-text"></div>
+
+    <div class="welcome-chip">
+      Bienvenido, <strong id="w-name">—</strong>
+    </div>
+
+    <button class="icon-btn" onclick="App.toggleTheme()" title="Cambiar tema">
+      <svg viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
+      </svg>
+    </button>
+
+    <button class="icon-btn" onclick="App.syncAll()" title="Sincronizar con Sheets">
+      <svg id="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2" stroke-linecap="round">
+        <polyline points="23 4 23 10 17 10"/>
+        <polyline points="1 20 1 14 7 14"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+    </button>
+  </header>
+
+  <!-- ── Sidebar ── -->
+  <nav class="sidebar" id="sidebar">
+
+    <div class="nav-section-lbl">General</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="App.goPage('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7"/>
+        <rect x="14" y="3" width="7" height="7"/>
+        <rect x="14" y="14" width="7" height="7"/>
+        <rect x="3" y="14" width="7" height="7"/>
+      </svg>
+      Dashboard
+    </div>
+    <div class="nav-item" id="nav-rotaciones" onclick="App.goPage('rotaciones')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="17 1 21 5 17 9"/>
+        <path d="M3 11V9a4 4 0 0 1 4-4h14"/>
+        <polyline points="7 23 3 19 7 15"/>
+        <path d="M21 13v2a4 4 0 0 1-4 4H3"/>
+      </svg>
+      Rotaciones
+    </div>
+    <div class="nav-item" id="nav-sorteo" onclick="App.goPage('sorteo')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="6"/>
+        <path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/>
+      </svg>
+      Sorteo
+    </div>
+
+    <div class="nav-section-lbl">Clanes</div>
+    <div id="clan-nav"></div>
+
+    <div class="nav-section-lbl">Sistema</div>
+    <div class="nav-item" id="nav-config" onclick="App.goPage('config')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+      </svg>
+      Configuración
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="logout-btn" onclick="App.logout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+          <polyline points="16 17 21 12 16 7"/>
+          <line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+        Cerrar sesión
+      </button>
+    </div>
+  </nav>
+
+  <!-- ── Main ── -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="page active">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Vista general</div>
+          <div class="page-sub" id="dash-date"></div>
+        </div>
+        <div id="dash-actions" class="fl-row"></div>
+      </div>
+      <div id="global-stats" class="stat-grid-4"></div>
+      <div id="clan-cards" class="clan-grid"></div>
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Actividad reciente</span></div>
+        <div id="activity-list"></div>
+      </div>
+    </div>
+
+    <!-- CLAN -->
+    <div id="page-clan" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="clan-title">—</div>
+          <div class="page-sub" id="clan-sub"></div>
+        </div>
+        <div id="clan-actions" class="fl-row" style="flex-wrap:wrap;gap:6px"></div>
+      </div>
+      <div id="clan-stats" class="stat-grid-3"></div>
+      <div id="clan-wars-card" class="card"></div>
+      <div id="clan-members-card" class="card"></div>
+    </div>
+
+    <!-- WAR REG -->
+    <div id="page-war" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="war-page-title">Registro de War</div>
+          <div class="page-sub" id="war-page-sub"></div>
+        </div>
+        <div id="war-page-actions" class="fl-row"></div>
+      </div>
+      <div id="war-reg-body"></div>
+    </div>
+
+    <!-- CWL REG -->
+    <div id="page-cwl" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="cwl-page-title">Registro de CWL</div>
+          <div class="page-sub" id="cwl-page-sub"></div>
+        </div>
+        <div id="cwl-page-actions" class="fl-row"></div>
+      </div>
+      <div id="cwl-reg-body"></div>
+    </div>
+
+    <!-- DONACIONES -->
+    <div id="page-don" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title" id="don-page-title">Donaciones</div>
+          <div class="page-sub" id="don-page-sub"></div>
+        </div>
+        <div id="don-page-actions" class="fl-row"></div>
+      </div>
+      <div id="don-reg-body"></div>
+    </div>
+
+    <!-- ROTACIONES -->
+    <div id="page-rotaciones" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Rotaciones Capital Raid</div>
+          <div class="page-sub">Jugadores que atacan en otro clan durante el fin de semana</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-rot')">
+          + Nueva rotación
+        </button>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Historial de visitas</span>
+          <span class="badge b-purple">Capital Raid</span>
+        </div>
+        <p class="section-hint">
+          Las donaciones del clan visitado se acreditan automáticamente al jugador
+          en su clan de origen usando el tag de CoC como identificador único.
+        </p>
+        <div id="rot-list"></div>
+      </div>
+    </div>
+
+    <!-- SORTEO -->
+    <div id="page-sorteo" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Sorteo mensual</div>
+          <div class="page-sub">3 pases de oro entre los miembros comprometidos</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Miembros aptos</span>
+          <span id="sorteo-count-badge" class="badge b-green">0 aptos</span>
+        </div>
+        <p class="section-hint">
+          Para participar: haber completado todos los ataques en war
+          y tener 100 o más donaciones en el mes.
+        </p>
+        <div id="sorteo-eligible"></div>
+        <div id="sorteo-btn-area" style="margin-top:16px"></div>
+      </div>
+      <div id="sorteo-result" style="display:none" class="card">
+        <div class="card-hd">
+          <span class="card-title">Ganadores del mes</span>
+          <span class="badge b-gold">Pases de oro</span>
+        </div>
+        <div id="sorteo-winners"></div>
+      </div>
+    </div>
+
+    <!-- CONFIG -->
+    <div id="page-config" class="page">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Configuración</div>
+          <div class="page-sub">Conexión a Google Sheets y gestión de usuarios</div>
+        </div>
+      </div>
+
+      <div class="card" id="sheets-setup-card">
+        <div class="card-hd"><span class="card-title">Google Sheets</span></div>
+        <p class="section-hint">
+          Pega la URL de tu Web App de Google Apps Script para sincronizar
+          todos los datos en tiempo real.
+        </p>
+        <div class="fl-row">
+          <input class="fi fl-1" type="text" id="sheets-url"
+                 placeholder="https://script.google.com/macros/s/.../exec">
+          <button class="btn btn-primary" onclick="App.connectSheets()">Conectar</button>
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-top:8px">
+          Usa el botón ↻ en la barra superior para sincronizar manualmente en cualquier momento.
+        </p>
+      </div>
+
+      <div class="card">
+        <div class="card-hd"><span class="card-title">Líderes del sistema</span></div>
+        <p class="section-hint">
+          Edita usuarios y contraseñas directamente en la pestaña
+          <code>Usuarios</code> de tu Google Sheet.
+          Los cambios aplican al próximo inicio de sesión.
+        </p>
+        <div class="tbl-wrap"><div id="users-table"></div></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════ -->
+
+<!-- Agregar miembro -->
+<div class="modal-overlay" id="modal-member">
+  <div class="modal">
+    <div class="modal-title">Agregar miembro</div>
+    <div class="modal-sub" id="modal-member-clan">Clan</div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="fg" style="grid-column:1/-1">
+        <label class="fl">Nombre en juego</label>
+        <input class="fi" type="text" id="nm-name" placeholder="ej. ShadowWolf">
+      </div>
+      <div class="fg">
+        <label class="fl">Tag de CoC</label>
+        <input class="fi" type="text" id="nm-tag" placeholder="#ABC123">
+      </div>
+      <div class="fg">
+        <label class="fl">Rol</label>
+        <select class="fi" id="nm-role">
+          <option>Miembro</option>
+          <option>Colidér</option>
+          <option>Líder</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="App.closeModal('modal-member')">Cancelar</button>
+      <button class="btn btn-primary" onclick="App.addMember()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Registrar resultado de guerra -->
+<div class="modal-overlay" id="modal-war-hist">
+  <div class="modal">
+    <div class="modal-title">Registrar resultado</div>
+    <div class="modal-sub" id="modal-war-hist-sub">Historial del clan</div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="fg">
+        <label class="fl">Fecha</label>
+        <input class="fi" type="date" id="wh-date">
+      </div>
+      <div class="fg">
+        <label class="fl">Tipo</label>
+        <select class="fi" id="wh-type">
+          <option value="war">Guerra regular</option>
+          <option value="cwl">CWL</option>
+        </select>
+      </div>
+      <div class="fg" style="grid-column:1/-1">
+        <label class="fl">Resultado</label>
+        <select class="fi" id="wh-result">
+          <option value="win">Victoria ⚔️</option>
+          <option value="loss">Derrota 💀</option>
+          <option value="draw">Empate 🤝</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Estrellas (nosotros)</label>
+        <input class="fi" type="number" id="wh-us" placeholder="ej. 28" min="0">
+      </div>
+      <div class="fg">
+        <label class="fl">Estrellas (rivales)</label>
+        <input class="fi" type="number" id="wh-them" placeholder="ej. 20" min="0">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="App.closeModal('modal-war-hist')">Cancelar</button>
+      <button class="btn btn-primary" onclick="App.saveWarResult()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Registrar rotación -->
+<div class="modal-overlay" id="modal-rot">
+  <div class="modal">
+    <div class="modal-title">Registrar rotación</div>
+    <div class="modal-sub">Capital Raid — fin de semana</div>
+    <div class="form-grid-2" style="margin-bottom:12px">
+      <div class="fg">
+        <label class="fl">Fecha</label>
+        <input class="fi" type="date" id="rot-date">
+      </div>
+      <div class="fg">
+        <label class="fl">Tag del jugador</label>
+        <input class="fi" type="text" id="rot-tag" placeholder="#ABC123">
+      </div>
+      <div class="fg" style="grid-column:1/-1">
+        <label class="fl">Nombre en juego</label>
+        <input class="fi" type="text" id="rot-name" placeholder="Nombre del jugador">
+      </div>
+      <div class="fg">
+        <label class="fl">Clan de origen</label>
+        <select class="fi" id="rot-from"></select>
+      </div>
+      <div class="fg">
+        <label class="fl">Clan visitado</label>
+        <select class="fi" id="rot-to"></select>
+      </div>
+      <div class="fg" style="grid-column:1/-1">
+        <label class="fl">Donaciones en clan visitado</label>
+        <input class="fi" type="number" id="rot-don" placeholder="0" min="0">
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:0">
+      Las donaciones se acreditan al total del jugador en su clan de origen
+      usando el tag como identificador único.
+    </p>
+    <div class="modal-footer">
+      <button class="btn" onclick="App.closeModal('modal-rot')">Cancelar</button>
+      <button class="btn btn-primary" onclick="App.saveRotation()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     SCRIPTS — orden de carga importante
+══════════════════════════════════════════════ -->
+<script src="assets/js/auth.js"></script>
+<script src="assets/js/api.js"></script>
+<script src="assets/js/store.js"></script>
+<script src="assets/js/war.js"></script>
+<script src="assets/js/donations.js"></script>
+<script src="assets/js/rotations.js"></script>
+<script src="assets/js/sorteo.js"></script>
+<script src="assets/js/app.js"></script>
+
+</body>
 </html>
