@@ -1,57 +1,62 @@
 // ============================================================
 //  NEXUS CORE — api/sheets.js
 //  Vercel Serverless Function — Proxy para Google Apps Script
-//  Resuelve el problema de CORS haciendo el fetch server-side
-//
-//  Endpoint: /api/sheets?action=...&param=...
-//  El browser llama a /api/sheets (mismo dominio = sin CORS)
-//  Este servidor llama a Apps Script (server-to-server = sin CORS)
+//  GET para lecturas, POST para escrituras con payload grande
 // ============================================================
 
 const SHEETS_URL = process.env.SHEETS_URL;
 
 export default async function handler(req, res) {
-  // Headers CORS para el browser
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Preflight
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
-  // Verificar que la URL de Sheets esté configurada
   if (!SHEETS_URL) {
-    return res.status(500).json({
-      error: 'SHEETS_URL no configurada. Agrégala en las variables de entorno de Vercel.'
-    });
+    return res.status(500).json({ error: 'SHEETS_URL no configurada en variables de entorno de Vercel.' });
   }
 
   try {
-    // Pasar todos los query params al Apps Script
-    const params = new URLSearchParams(req.query).toString();
-    const url = `${SHEETS_URL}?${params}`;
+    const action = req.query.action;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      redirect: 'follow',
-    });
+    // Acciones de escritura con payload grande van por POST
+    const writeActions = ['saveMembers', 'saveWar', 'saveRotation', 'saveActivity'];
+    const isWrite = writeActions.includes(action);
+
+    let response;
+
+    if (isWrite) {
+      // Mandamos el body como JSON via POST
+      // Apps Script lo recibe en e.postData.contents
+      const body = { ...req.query };
+      response = await fetch(SHEETS_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams(body).toString(),
+      });
+    } else {
+      // Lecturas (getAll) van por GET normal
+      const qs = new URLSearchParams(req.query).toString();
+      response = await fetch(`${SHEETS_URL}?${qs}`, {
+        method: 'GET',
+        redirect: 'follow',
+      });
+    }
 
     const text = await response.text();
 
-    // Intentar parsear como JSON
     try {
-      const data = JSON.parse(text);
-      return res.status(200).json(data);
+      return res.status(200).json(JSON.parse(text));
     } catch {
-      // Si no es JSON válido devolver el texto para debug
-      return res.status(200).send(text);
+      // Si no es JSON, loguear el texto para debug
+      console.error('Apps Script response no es JSON:', text.slice(0, 300));
+      return res.status(500).json({ error: 'Respuesta inválida de Apps Script. Verifica el deployment.' });
     }
 
   } catch (err) {
-    return res.status(500).json({
-      error: `Error al conectar con Google Sheets: ${err.message}`
-    });
+    console.error('Proxy error:', err.message);
+    return res.status(500).json({ error: `Error de conexión: ${err.message}` });
   }
 }
