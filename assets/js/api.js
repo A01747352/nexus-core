@@ -13,7 +13,7 @@ const API = (() => {
 
   function setUrl(url)    { _url = url.trim(); }
   function getUrl()       { return _url; }
-  function isConnected()  { return _url !== ''; }
+  function isConnected()  { return true; } // Proxy siempre disponible en Vercel
 
   async function call(params) {
     const qs      = new URLSearchParams(params).toString();
