@@ -35,6 +35,7 @@ const App = (() => {
     document.getElementById('login-err').style.display     = 'none';
 
     _buildNav();
+    syncAll(); // Auto-sync al entrar
     goPage('dashboard');
   }
 
@@ -122,7 +123,6 @@ const App = (() => {
   }
 
   async function syncAll() {
-    if (!API.isConnected()) { showSync('Conecta Sheets en Configuración', 'err'); return; }
 
     const icon = document.getElementById('sync-icon');
     icon?.classList.add('spin');
@@ -584,9 +584,9 @@ const App = (() => {
 
   // ── Config Page ───────────────────────────────────────────
   function renderConfig() {
-    if (API.isConnected()) {
-      document.getElementById('sheets-setup-card').style.display = 'none';
-    }
+    // Sheets setup siempre oculto — la URL vive en Vercel env
+    const setupCard = document.getElementById('sheets-setup-card');
+    if (setupCard) setupCard.style.display = 'none';
 
     document.getElementById('users-table').innerHTML = `
       <table class="tbl">
@@ -618,14 +618,12 @@ const App = (() => {
     Store.addMember(clanId, { name, tag: tag || '—', role });
     Store.logActivity(`Nuevo miembro: ${name}`, clanId);
 
-    if (API.isConnected()) {
-      await API.saveMembersWithLog(
-        clanId,
-        Store.getMembers(clanId),
-        `Nuevo miembro: ${name}`,
-        Auth.getSession()?.name
-      );
-    }
+    await API.saveMembersWithLog(
+      clanId,
+      Store.getMembers(clanId),
+      `Nuevo miembro: ${name}`,
+      Auth.getSession()?.name
+    );
 
     closeModal('modal-member');
     renderClan();
