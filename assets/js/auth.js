@@ -11,11 +11,11 @@ const Auth = (() => {
   // Usuarios por defecto — se sobreescriben al sincronizar con Sheets
   // Cambiarlos directamente en la pestaña "Usuarios" de Google Sheets
   let _users = [
-    { user: 'turpial', pass: 'nexus2024', role: 'super',  name: 'Turpial', clan: null },
-    { user: 'lider1',  pass: 'clan1234',  role: 'leader', name: 'Líder 1', clan: 'crushers'    },
-    { user: 'lider2',  pass: 'clan1234',  role: 'leader', name: 'Líder 2', clan: 'northwestern' },
-    { user: 'lider3',  pass: 'clan1234',  role: 'leader', name: 'Líder 3', clan: 'mexico'       },
-    { user: 'lider4',  pass: 'clan1234',  role: 'leader', name: 'Shabo', clan: 'tranqui'      },
+    { user: 'joj0386', pass: 'nexus2026', role: 'super',  name: 'Joj', clan: null },
+    { user: 'lider1',  pass: 'nexus2026',  role: 'leader', name: 'Líder', clan: 'crushers'    },
+    { user: 'lider2',  pass: 'nexus2026',  role: 'leader', name: 'Líder', clan: 'northwestern' },
+    { user: 'lider3',  pass: 'nexus2026',  role: 'leader', name: 'Líder', clan: 'mexico'       },
+    { user: 'lider4',  pass: 'nexus2026',  role: 'leader', name: 'Shabo', clan: 'tranqui'      },
   ];
 
   // ── Login ─────────────────────────────────────────────────
