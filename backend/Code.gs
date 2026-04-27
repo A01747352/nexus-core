@@ -1,3 +1,26 @@
+// ============================================================
+//  NEXUS CORE — Google Apps Script v2
+//  Compatible con nexus_core.html (versión completa con login)
+//
+//  INSTRUCCIONES:
+//  1. Abre tu Google Sheet
+//  2. Ve a Extensions > Apps Script
+//  3. Borra el código anterior y pega este completo
+//  4. Guarda con Ctrl+S
+//  5. Deploy > New deployment (o "Manage deployments" > edit si ya tienes uno)
+//     - Type: Web App
+//     - Execute as: Me
+//     - Who has access: Anyone
+//  6. Copia la URL y pégala en el dashboard (Configuración)
+//
+//  PESTAÑAS QUE CREA AUTOMÁTICAMENTE:
+//  Miembros_crushers, Miembros_northwestern, Miembros_mexico, Miembros_tranqui
+//  Guerras_crushers, Guerras_northwestern, Guerras_mexico, Guerras_tranqui
+//  Rotaciones
+//  Usuarios
+//  Actividad
+// ============================================================
+
 const CLAN_IDS = ['crushers', 'northwestern', 'mexico', 'tranqui'];
 
 function doGet(e)     { return handle(e); }
@@ -5,7 +28,20 @@ function doPost(e)    { return handle(e); }
 function doOptions(e) { return buildResponse('{}'); } // Preflight CORS
 
 function handle(e) {
-  const p = e.parameter;
+  // Leer parámetros de GET o de POST body (application/x-www-form-urlencoded)
+  let p = Object.assign({}, e.parameter || {});
+
+  if (e.postData && e.postData.contents) {
+    try {
+      e.postData.contents.split('&').forEach(pair => {
+        const parts = pair.split('=');
+        const k = decodeURIComponent(parts[0].replace(/\+/g, ' '));
+        const v = decodeURIComponent((parts[1] || '').replace(/\+/g, ' '));
+        if (k && !(k in p)) p[k] = v;
+      });
+    } catch(err) {}
+  }
+
   let result;
   try {
     switch (p.action) {
@@ -14,7 +50,7 @@ function handle(e) {
       case 'saveWar':      saveWarSheet(p.clan, JSON.parse(p.war));         result={ok:true}; break;
       case 'saveRotation': saveRotationSheet(JSON.parse(p.rotation));       result={ok:true}; break;
       case 'saveActivity': saveActivitySheet(JSON.parse(p.entry));          result={ok:true}; break;
-      default:             result = { error: 'Acción desconocida: ' + p.action };
+      default:             result = { error: 'Acción desconocida: ' + (p.action || 'ninguna') };
     }
   } catch(err) {
     result = { error: err.message };
