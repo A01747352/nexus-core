@@ -167,8 +167,7 @@ const War = (() => {
     Store.setWars(clanId, wars);
     Store.logActivity('Guerra eliminada', clanId);
     try {
-      // Reescribir todas las guerras del clan
-      await API.saveWar(clanId, { _replaceAll: true, wars: JSON.stringify(wars) });
+      await API.replaceWars(clanId, wars);
     } catch(e) {
       console.error('Error eliminando guerra:', e);
     }

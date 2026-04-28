@@ -49,7 +49,8 @@ function handle(e) {
       case 'saveMembers':  saveMembersSheet(p.clan, JSON.parse(p.members)); result={ok:true}; break;
       case 'saveWar':      saveWarSheet(p.clan, JSON.parse(p.war));         result={ok:true}; break;
       case 'saveRotation': saveRotationSheet(JSON.parse(p.rotation));       result={ok:true}; break;
-      case 'saveActivity': saveActivitySheet(JSON.parse(p.entry));          result={ok:true}; break;
+      case 'saveActivity':  saveActivitySheet(JSON.parse(p.entry));         result={ok:true}; break;
+      case 'replaceWars':   replaceWarsSheet(p.clan, JSON.parse(p.wars));     result={ok:true}; break;
       default:             result = { error: 'Acción desconocida: ' + (p.action || 'ninguna') };
     }
   } catch(err) {
@@ -148,6 +149,15 @@ function ensureDefaultUsers() {
     ];
     defaults.forEach(row => sheet.appendRow(row));
   }
+}
+
+// ── Reemplazar historial completo de guerras ─────────────────
+function replaceWarsSheet(clan, wars) {
+  const sheet = getOrCreate('Guerras_' + clan, WAR_HEADERS);
+  clearData(sheet);
+  wars.forEach(w => {
+    sheet.appendRow(WAR_HEADERS.map(h => w[h] !== undefined ? w[h] : ''));
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────

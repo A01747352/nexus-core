@@ -270,11 +270,10 @@ const App = (() => {
       </div>`;
 
     document.getElementById('clan-actions').innerHTML = canEd ? `
-      <button class="btn btn-sm" onclick="App.goPage('war')">Reg. War</button>
+      <button class="btn btn-primary btn-sm" onclick="App.goPage('war')">⚔️ Reg. War</button>
       <button class="btn btn-sm" onclick="App.goPage('cwl')">Reg. CWL</button>
       <button class="btn btn-sm" onclick="App.goPage('don')">Donaciones</button>
-      <button class="btn btn-sm" onclick="App.openModal('modal-member')">+ Miembro</button>
-      <button class="btn btn-primary btn-sm" onclick="App.openModal('modal-war-hist')">+ Resultado</button>`
+      <button class="btn btn-sm" onclick="App.openModal('modal-member')">+ Miembro</button>`
       : '<span class="readonly-notice">Solo lectura</span>';
 
     // Wars table
@@ -691,10 +690,10 @@ const App = (() => {
     const m = Store.getMember(clanId, memberId);
     if (!m) return;
     if (!confirm(`¿Borrar a ${m.name} del clan? Esta acción no se puede deshacer.`)) return;
-    War.deleteMember(clanId, memberId).then(() => {
-      showToast('✓ Miembro eliminado');
-      renderClan();
-    });
+    Store.setMembers(clanId, Store.getMembers(clanId).filter(m => String(m.id) !== String(memberId)));
+    renderClan();
+    showToast('✓ Miembro eliminado');
+    War.deleteMember(clanId, memberId);
   }
 
   function confirmDeleteWar(clanId, warDisplayIndex) {
@@ -702,20 +701,22 @@ const App = (() => {
     const wars = Store.getWars(clanId);
     const realIndex = wars.length - 1 - warDisplayIndex;
     if (!confirm('¿Borrar este resultado de guerra? Esta acción no se puede deshacer.')) return;
-    War.deleteWar(clanId, realIndex).then(() => {
-      showToast('✓ Guerra eliminada');
-      renderClan();
-    });
+    const newWars = Store.getWars(clanId).filter((_, i) => i !== realIndex);
+    Store.setWars(clanId, newWars);
+    renderClan();
+    showToast('✓ Guerra eliminada');
+    War.deleteWar(clanId, realIndex);
   }
 
   function confirmResetDonations(clanId, memberId) {
     const m = Store.getMember(clanId, memberId);
     if (!m) return;
     if (!confirm(`¿Resetear las donaciones de ${m.name} a 0?`)) return;
-    War.resetDonations(clanId, memberId).then(() => {
-      showToast('✓ Donaciones reseteadas');
-      renderClan();
-    });
+    const mDon = Store.getMember(clanId, memberId);
+    if (mDon) { mDon.donTotal = 0; Store.setMembers(clanId, Store.getMembers(clanId)); }
+    renderClan();
+    showToast('✓ Donaciones reseteadas');
+    War.resetDonations(clanId, memberId);
   }
 
   // ── Members modal ─────────────────────────────────────────
