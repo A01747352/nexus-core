@@ -13,6 +13,31 @@ const App = (() => {
     _setDate();
   }
 
+
+  // ── Toast de éxito ────────────────────────────────────────
+  function showToast(msg) {
+    let toast = document.getElementById('nc-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'nc-toast';
+      toast.style.cssText = `
+        position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+        background:#1D9E75;color:white;padding:10px 20px;border-radius:8px;
+        font-family:var(--font);font-size:14px;font-weight:500;z-index:999;
+        box-shadow:0 4px 16px rgba(0,0,0,.3);transition:opacity .3s;
+      `;
+      document.body.appendChild(toast);
+    }
+    toast.textContent = msg;
+    toast.style.opacity = '1';
+    toast.style.display = 'block';
+    clearTimeout(toast._timer);
+    toast._timer = setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.style.display = 'none', 300);
+    }, 2500);
+  }
+
   // ── Login ─────────────────────────────────────────────────
   function _bindLoginForm() {
     document.getElementById('l-pass')
@@ -263,13 +288,14 @@ const App = (() => {
       ${!wars.length
         ? '<div class="empty">Sin guerras registradas.</div>'
         : `<div class="tbl-wrap"><table class="tbl">
-            <thead><tr><th>Tipo</th><th>Fecha</th><th>Estrellas</th><th>Resultado</th></tr></thead>
-            <tbody>${[...wars].reverse().slice(0, 8).map(w => `
+            <thead><tr><th>Tipo</th><th>Fecha</th><th>Estrellas</th><th>Resultado</th><th></th></tr></thead>
+            <tbody>${[...wars].reverse().slice(0, 8).map((w, i) => `
               <tr>
                 <td class="n">${w.type === 'cwl' ? 'CWL' : 'Guerra'}</td>
                 <td><span class="tag">${w.date || '—'}</span></td>
                 <td>${w.starsUs || '—'} — ${w.starsThem || '—'}</td>
                 <td><span class="badge ${bc(w.result)}">${lbl(w.result)}</span></td>
+              ${canEd ? `<td><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteWar('${clanId}',${i})">Borrar</button></td>` : '<td></td>'}
               </tr>`).join('')}
             </tbody>
           </table></div>`}`;
@@ -317,6 +343,7 @@ const App = (() => {
                       ? '<span style="color:#EF9F27;font-size:13px">★</span>' : ''}
                   </td>
                   <td><span class="badge ${ok ? 'b-green' : 'b-amber'}">${ok ? 'Apto' : 'Pendiente'}</span></td>
+                  ${canEd ? `<td><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteMember('${clanId}','${m.id}')">Borrar</button></td>` : '<td></td>'}
                 </tr>`;
             }).join('')}
             </tbody>
@@ -332,9 +359,9 @@ const App = (() => {
     War.startWarReg(clanId);
 
     document.getElementById('war-page-title').textContent = `Registro War — ${meta.name}`;
-    document.getElementById('war-page-sub').textContent   = 'Marca participación y ataques por miembro';
+    document.getElementById('war-page-sub').textContent   = 'Marca ataques y resultado en un solo paso';
     document.getElementById('war-page-actions').innerHTML =
-      '<button class="btn btn-primary btn-sm" onclick="App.saveWarReg()">Guardar</button>';
+      '<button id="war-save-btn" class="btn btn-primary btn-sm" onclick="App.saveWarFull()">Guardar todo</button>';
 
     document.getElementById('war-reg-body').innerHTML = !members.length
       ? '<div class="card"><div class="empty">Sin miembros en este clan.</div></div>'
@@ -363,12 +390,62 @@ const App = (() => {
               <div id="wa1-${m.id}" class="ck-n" onclick="War.setWarAttacks('${m.id}',1)">1</div>
               <div id="wa2-${m.id}" class="ck-n" onclick="War.setWarAttacks('${m.id}',2)">2</div>
             </div>`).join('')}
+        </div>
+        <div class="card" style="margin-top:12px">
+          <div class="card-hd"><span class="card-title">Resultado de la guerra</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px">
+            <div class="fg">
+              <label class="fl">Fecha</label>
+              <input class="fi" type="date" id="war-res-date">
+            </div>
+            <div class="fg">
+              <label class="fl">Tipo</label>
+              <select class="fi" id="war-res-type">
+                <option value="war">Guerra regular</option>
+                <option value="cwl">CWL</option>
+              </select>
+            </div>
+            <div class="fg" style="grid-column:1/-1">
+              <label class="fl">Resultado</label>
+              <select class="fi" id="war-res-result">
+                <option value="win">Victoria ⚔️</option>
+                <option value="loss">Derrota 💀</option>
+                <option value="draw">Empate 🤝</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label class="fl">Estrellas (nosotros)</label>
+              <input class="fi" type="number" id="war-res-us" placeholder="ej. 28" min="0">
+            </div>
+            <div class="fg">
+              <label class="fl">Estrellas (rivales)</label>
+              <input class="fi" type="number" id="war-res-them" placeholder="ej. 20" min="0">
+            </div>
+          </div>
         </div>`;
+
+    // Set today's date
+    const dateEl = document.getElementById('war-res-date');
+    if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+  }
+
+  async function saveWarFull() {
+    const result = {
+      date:      document.getElementById('war-res-date')?.value || new Date().toISOString().split('T')[0],
+      type:      document.getElementById('war-res-type')?.value || 'war',
+      result:    document.getElementById('war-res-result')?.value || 'win',
+      starsUs:   document.getElementById('war-res-us')?.value || '',
+      starsThem: document.getElementById('war-res-them')?.value || '',
+    };
+    await War.saveWarFull(result);
+    showToast('✓ Guerra guardada correctamente');
+    setTimeout(() => goPage('clan'), 2000);
   }
 
   async function saveWarReg() {
-    await War.saveWarReg();
-    goPage('clan');
+    await War.saveWarFull({ date: new Date().toISOString().split('T')[0], type: 'war', result: 'win' });
+    showToast('✓ Registro guardado');
+    setTimeout(() => goPage('clan'), 2000);
   }
 
   // ── CWL Page ──────────────────────────────────────────────
@@ -428,7 +505,8 @@ const App = (() => {
 
   async function saveCWLReg() {
     await War.saveCWLReg();
-    goPage('clan');
+    showToast('✓ CWL guardada correctamente');
+    setTimeout(() => goPage('clan'), 2000);
   }
 
   // ── Donations Page ────────────────────────────────────────
@@ -474,7 +552,8 @@ const App = (() => {
   async function saveDonReg() {
     const res = await Donations.saveWeek();
     if (!res.ok) { alert(res.message); return; }
-    goPage('clan');
+    showToast('✓ Donaciones guardadas');
+    setTimeout(() => goPage('clan'), 2000);
   }
 
   // ── Rotaciones Page ───────────────────────────────────────
@@ -606,6 +685,39 @@ const App = (() => {
       </table>`;
   }
 
+
+  // ── Borrar ────────────────────────────────────────────────
+  function confirmDeleteMember(clanId, memberId) {
+    const m = Store.getMember(clanId, memberId);
+    if (!m) return;
+    if (!confirm(`¿Borrar a ${m.name} del clan? Esta acción no se puede deshacer.`)) return;
+    War.deleteMember(clanId, memberId).then(() => {
+      showToast('✓ Miembro eliminado');
+      renderClan();
+    });
+  }
+
+  function confirmDeleteWar(clanId, warDisplayIndex) {
+    // warDisplayIndex es el índice en el array revertido — convertir al real
+    const wars = Store.getWars(clanId);
+    const realIndex = wars.length - 1 - warDisplayIndex;
+    if (!confirm('¿Borrar este resultado de guerra? Esta acción no se puede deshacer.')) return;
+    War.deleteWar(clanId, realIndex).then(() => {
+      showToast('✓ Guerra eliminada');
+      renderClan();
+    });
+  }
+
+  function confirmResetDonations(clanId, memberId) {
+    const m = Store.getMember(clanId, memberId);
+    if (!m) return;
+    if (!confirm(`¿Resetear las donaciones de ${m.name} a 0?`)) return;
+    War.resetDonations(clanId, memberId).then(() => {
+      showToast('✓ Donaciones reseteadas');
+      renderClan();
+    });
+  }
+
   // ── Members modal ─────────────────────────────────────────
   async function addMember() {
     const name = document.getElementById('nm-name').value.trim();
@@ -708,6 +820,12 @@ const App = (() => {
     // Modals
     openModal,
     closeModal,
+    // Borrar
+    confirmDeleteMember,
+    confirmDeleteWar,
+    confirmResetDonations,
+    // War nuevo flujo
+    saveWarFull,
   };
 
 })();

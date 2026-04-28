@@ -1,29 +1,30 @@
 // ============================================================
-//  NEXUS CORE — war.js
-//  Registro de participación en War y CWL
+//  NEXUS CORE — war.js v2
+//  - Flujo único: Reg. War → Resultado en un solo paso
+//  - Botón guardar se deshabilita tras guardar (evita duplicados)
+//  - Confirmación de éxito antes de regresar al clan
+//  - Funciones de borrado para miembros, guerras y donaciones
 //  Depende de: auth.js, api.js, store.js
 // ============================================================
 
 const War = (() => {
 
-  // ── Estado temporal del registro activo ───────────────────
-  let _warState  = {}; // { [memberId]: { entered, attacks } }
-  let _cwlState  = {}; // { [memberId]: { entered, mirror, attacks } }
+  let _warState   = {};
+  let _cwlState   = {};
   let _activeClan = '';
-  let _activeType = 'war'; // 'war' | 'cwl'
+  let _saving     = false; // Bandera anti-doble-click
 
   // ── War Registration ──────────────────────────────────────
 
   function startWarReg(clanId) {
     _activeClan = clanId;
-    _activeType = 'war';
-    _warState = {};
+    _warState   = {};
+    _saving     = false;
   }
 
   function toggleWarEntered(memberId) {
     if (!_warState[memberId]) _warState[memberId] = { entered: false, attacks: 0 };
     _warState[memberId].entered = !_warState[memberId].entered;
-    // Si sale de la guerra, resetear ataques
     if (!_warState[memberId].entered) _warState[memberId].attacks = 0;
     _renderWarRow(memberId);
   }
@@ -31,7 +32,6 @@ const War = (() => {
   function setWarAttacks(memberId, value) {
     if (!_warState[memberId]) _warState[memberId] = { entered: false, attacks: 0 };
     const current = _warState[memberId].attacks;
-    // Toggle: si ya tiene ese valor, lo quita
     _warState[memberId].attacks = current === value ? 0 : value;
     _renderWarRow(memberId);
   }
@@ -40,37 +40,58 @@ const War = (() => {
     return _warState[memberId] || { entered: false, attacks: 0 };
   }
 
-  async function saveWarReg() {
+  // Guarda ataques + resultado en un solo flujo
+  async function saveWarFull(warResult) {
+    if (_saving) return;
+    _saving = true;
+    _disableSaveBtn('war-save-btn');
+
     const members = Store.getMembers(_activeClan);
 
+    // 1. Acumular ataques por miembro
+    const participants = [];
     members.forEach(m => {
       const s = _warState[m.id] || {};
       if (s.entered) {
-        m.warTotal    = (m.warTotal    || 0) + 1;
-        m.warAttacks  = (m.warAttacks  || 0) + (s.attacks || 0);
+        m.warTotal   = (m.warTotal   || 0) + 1;
+        m.warAttacks = (m.warAttacks || 0) + (s.attacks || 0);
+        participants.push(m.name);
       }
     });
 
+    // 2. Guardar resultado con lista de participantes
+    const war = {
+      date:         warResult.date,
+      type:         warResult.type,
+      result:       warResult.result,
+      starsUs:      warResult.starsUs   || '',
+      starsThem:    warResult.starsThem || '',
+      participants: participants.join(', '),
+    };
+
     Store.setMembers(_activeClan, members);
-    Store.logActivity('Registro War', _activeClan);
+    Store.addWar(_activeClan, war);
+    Store.logActivity(`Guerra ${_resultLabel(war.result)} registrada`, _activeClan);
     _warState = {};
 
-    if (API.isConnected()) {
-      await API.saveMembersWithLog(
-        _activeClan,
-        members,
-        'Registro War',
-        Auth.getSession()?.name
-      );
+    try {
+      await Promise.all([
+        API.saveMembersWithLog(_activeClan, members, `Guerra registrada: ${_resultLabel(war.result)}`, Auth.getSession()?.name),
+        API.saveWar(_activeClan, war),
+      ]);
+    } catch(e) {
+      console.error('Error guardando guerra:', e);
     }
+
+    _saving = false;
   }
 
   // ── CWL Registration ──────────────────────────────────────
 
   function startCWLReg(clanId) {
     _activeClan = clanId;
-    _activeType = 'cwl';
-    _cwlState = {};
+    _cwlState   = {};
+    _saving     = false;
   }
 
   function toggleCWLEntered(memberId) {
@@ -101,8 +122,11 @@ const War = (() => {
   }
 
   async function saveCWLReg() {
-    const members = Store.getMembers(_activeClan);
+    if (_saving) return;
+    _saving = true;
+    _disableSaveBtn('cwl-save-btn');
 
+    const members = Store.getMembers(_activeClan);
     members.forEach(m => {
       const s = _cwlState[m.id] || {};
       if (s.entered) {
@@ -116,40 +140,55 @@ const War = (() => {
     Store.logActivity('Registro CWL', _activeClan);
     _cwlState = {};
 
-    if (API.isConnected()) {
-      await API.saveMembersWithLog(
-        _activeClan,
-        members,
-        'Registro CWL',
-        Auth.getSession()?.name
-      );
+    try {
+      await API.saveMembersWithLog(_activeClan, members, 'Registro CWL', Auth.getSession()?.name);
+    } catch(e) {
+      console.error('Error guardando CWL:', e);
+    }
+
+    _saving = false;
+  }
+
+  // ── Borrar ────────────────────────────────────────────────
+
+  async function deleteMember(clanId, memberId) {
+    const members = Store.getMembers(clanId).filter(m => String(m.id) !== String(memberId));
+    Store.setMembers(clanId, members);
+    Store.logActivity('Miembro eliminado', clanId);
+    try {
+      await API.saveMembersWithLog(clanId, members, 'Miembro eliminado', Auth.getSession()?.name);
+    } catch(e) {
+      console.error('Error eliminando miembro:', e);
     }
   }
 
-  // ── Historial de guerras ───────────────────────────────────
-
-  async function saveWarResult(clanId, warData) {
-    const war = {
-      date:      warData.date,
-      type:      warData.type,     // 'war' | 'cwl'
-      result:    warData.result,   // 'win' | 'loss' | 'draw'
-      starsUs:   warData.starsUs   || '',
-      starsThem: warData.starsThem || '',
-    };
-
-    Store.addWar(clanId, war);
-    Store.logActivity(
-      `Resultado ${war.type === 'cwl' ? 'CWL' : 'guerra'}: ${_resultLabel(war.result)}`,
-      clanId
-    );
-
-    if (API.isConnected()) {
-      await API.saveWar(clanId, war);
+  async function deleteWar(clanId, warIndex) {
+    const wars = Store.getWars(clanId).filter((_, i) => i !== warIndex);
+    Store.setWars(clanId, wars);
+    Store.logActivity('Guerra eliminada', clanId);
+    try {
+      // Reescribir todas las guerras del clan
+      await API.saveWar(clanId, { _replaceAll: true, wars: JSON.stringify(wars) });
+    } catch(e) {
+      console.error('Error eliminando guerra:', e);
     }
   }
 
-  // ── UI Render helpers ─────────────────────────────────────
-  // Actualiza solo la fila del miembro sin re-renderizar toda la lista
+  async function resetDonations(clanId, memberId) {
+    const members = Store.getMembers(clanId);
+    const m = members.find(x => String(x.id) === String(memberId));
+    if (!m) return;
+    m.donTotal = 0;
+    Store.setMembers(clanId, members);
+    Store.logActivity('Donaciones reseteadas', clanId);
+    try {
+      await API.saveMembersWithLog(clanId, members, 'Donaciones reseteadas', Auth.getSession()?.name);
+    } catch(e) {
+      console.error('Error reseteando donaciones:', e);
+    }
+  }
+
+  // ── UI Helpers ────────────────────────────────────────────
 
   function _renderWarRow(memberId) {
     const s = _warState[memberId] || {};
@@ -169,19 +208,28 @@ const War = (() => {
     if (mEl) mEl.className = `ck ${s.mirror  ? 'on' : ''}`;
     for (let n = 1; n <= 7; n++) {
       const el = document.getElementById(`ca${n}-${memberId}`);
-      if (el) el.className = `ck-n ${(s.attacks || 0) >= n ? 'on' : ''}`;
+      if (el) {
+        el.className = `ck-n ${(s.attacks || 0) >= n ? 'on' : ''}`;
+        el.style.cssText = 'width:26px;height:26px;font-size:11px';
+      }
     }
   }
 
-  // ── Utils ─────────────────────────────────────────────────
+  function _disableSaveBtn(id) {
+    const btn = document.getElementById(id);
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      btn.style.opacity = '0.6';
+      btn.style.cursor = 'not-allowed';
+    }
+  }
+
   function _resultLabel(result) {
     return { win: 'Victoria', loss: 'Derrota', draw: 'Empate' }[result] || result;
   }
 
-  function getResultLabel(result) {
-    return _resultLabel(result);
-  }
-
+  function getResultLabel(result)     { return _resultLabel(result); }
   function getResultBadgeClass(result) {
     return { win: 'b-green', loss: 'b-red', draw: 'b-amber' }[result] || 'b-gray';
   }
@@ -193,7 +241,7 @@ const War = (() => {
     toggleWarEntered,
     setWarAttacks,
     getWarState,
-    saveWarReg,
+    saveWarFull,
     // CWL
     startCWLReg,
     toggleCWLEntered,
@@ -201,8 +249,10 @@ const War = (() => {
     setCWLAttacks,
     getCWLState,
     saveCWLReg,
-    // Historial
-    saveWarResult,
+    // Borrar
+    deleteMember,
+    deleteWar,
+    resetDonations,
     // Utils
     getResultLabel,
     getResultBadgeClass,
