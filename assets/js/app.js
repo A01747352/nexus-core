@@ -342,7 +342,7 @@ const App = (() => {
                       ? '<span style="color:#EF9F27;font-size:13px">★</span>' : ''}
                   </td>
                   <td><span class="badge ${ok ? 'b-green' : 'b-amber'}">${ok ? 'Apto' : 'Pendiente'}</span></td>
-                  ${canEd ? `<td><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteMember('${clanId}','${m.id}')">Borrar</button></td>` : '<td></td>'}
+                  ${canEd ? `<td style="display:flex;gap:4px"><button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="App.openMoveMember('${clanId}','${m.id}')">Mover</button><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteMember('${clanId}','${m.id}')">Borrar</button></td>` : '<td></td>'}
                 </tr>`;
             }).join('')}
             </tbody>
@@ -685,6 +685,51 @@ const App = (() => {
   }
 
 
+
+  // ── Mover miembro ─────────────────────────────────────────
+  function openMoveMember(clanId, memberId) {
+    const m = Store.getMember(clanId, memberId);
+    if (!m) return;
+
+    // Llenar el modal
+    document.getElementById('move-member-name').textContent = m.name;
+    document.getElementById('move-member-tag').textContent  = m.tag || '';
+    document.getElementById('move-from-clan').value = clanId;
+    document.getElementById('move-member-id').value = memberId;
+
+    // Opciones de destino — excluir el clan actual
+    const select = document.getElementById('move-to-clan');
+    select.innerHTML = Store.CLANS_META
+      .filter(c => c.id !== clanId)
+      .map(c => `<option value="${c.id}">${c.name}</option>`)
+      .join('');
+
+    openModal('modal-move-member');
+  }
+
+  async function confirmMoveMember() {
+    const fromClanId = document.getElementById('move-from-clan').value;
+    const memberId   = document.getElementById('move-member-id').value;
+    const toClanId   = document.getElementById('move-to-clan').value;
+
+    const btn = document.getElementById('move-confirm-btn');
+    btn.disabled = true;
+    btn.textContent = 'Moviendo...';
+
+    const res = await War.moveMember(fromClanId, memberId, toClanId);
+
+    if (!res.ok) {
+      alert(res.error);
+      btn.disabled = false;
+      btn.textContent = 'Mover';
+      return;
+    }
+
+    closeModal('modal-move-member');
+    showToast(`✓ ${res.member.name} movido correctamente`);
+    renderClan();
+  }
+
   // ── Borrar ────────────────────────────────────────────────
   function confirmDeleteMember(clanId, memberId) {
     const m = Store.getMember(clanId, memberId);
@@ -821,10 +866,12 @@ const App = (() => {
     // Modals
     openModal,
     closeModal,
-    // Borrar
+    // Borrar / Mover
     confirmDeleteMember,
     confirmDeleteWar,
     confirmResetDonations,
+    openMoveMember,
+    confirmMoveMember,
     // War nuevo flujo
     saveWarFull,
   };

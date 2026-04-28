@@ -439,6 +439,38 @@
   </div>
 </div>
 
+<!-- Mover miembro entre clanes -->
+<div class="modal-overlay" id="modal-move-member">
+  <div class="modal">
+    <div class="modal-title">Mover miembro</div>
+    <div class="modal-sub">El historial completo se conserva</div>
+
+    <div style="background:var(--surface2);border-radius:var(--r);padding:12px 14px;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:600;color:var(--text)" id="move-member-name">—</div>
+      <div style="font-size:12px;color:var(--text3);font-family:var(--mono)" id="move-member-tag"></div>
+    </div>
+
+    <input type="hidden" id="move-from-clan">
+    <input type="hidden" id="move-member-id">
+
+    <div class="fg" style="margin-bottom:16px">
+      <label class="fl">Mover a</label>
+      <select class="fi" id="move-to-clan"></select>
+    </div>
+
+    <p style="font-size:12px;color:var(--text2);line-height:1.6;margin-bottom:0">
+      Se conservan todos sus ataques war, CWL, espejos y donaciones.
+      Se elimina del clan de origen.
+    </p>
+
+    <div class="modal-footer">
+      <button class="btn" onclick="App.closeModal('modal-move-member')">Cancelar</button>
+      <button id="move-confirm-btn" class="btn btn-primary" onclick="App.confirmMoveMember()">Mover</button>
+    </div>
+  </div>
+</div>
+
+
 <!-- ══════════════════════════════════════════════
      SCRIPTS — orden de carga importante
 ══════════════════════════════════════════════ -->

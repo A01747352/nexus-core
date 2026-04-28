@@ -173,6 +173,40 @@ const War = (() => {
     }
   }
 
+  async function moveMember(fromClanId, memberId, toClanId) {
+    if (fromClanId === toClanId) return { ok: false, error: 'El clan destino es el mismo.' };
+
+    const fromMembers = Store.getMembers(fromClanId);
+    const member = fromMembers.find(m => String(m.id) === String(memberId));
+    if (!member) return { ok: false, error: 'Miembro no encontrado.' };
+
+    // Copiar al clan destino con el mismo id para evitar duplicados por tag
+    const toMembers = Store.getMembers(toClanId);
+    const alreadyThere = toMembers.find(m => m.tag === member.tag);
+    if (alreadyThere) return { ok: false, error: `${member.name} ya existe en ese clan.` };
+
+    // Agregar al destino conservando todos sus stats
+    toMembers.push({ ...member, id: Date.now() });
+    Store.setMembers(toClanId, toMembers);
+
+    // Quitar del origen
+    const newFrom = fromMembers.filter(m => String(m.id) !== String(memberId));
+    Store.setMembers(fromClanId, newFrom);
+
+    Store.logActivity(`${member.name} movido a ${toClanId}`, fromClanId);
+
+    try {
+      await Promise.all([
+        API.saveMembersWithLog(fromClanId, newFrom, `Miembro movido: ${member.name}`, Auth.getSession()?.name),
+        API.saveMembersWithLog(toClanId, toMembers, `Miembro recibido: ${member.name}`, Auth.getSession()?.name),
+      ]);
+    } catch(e) {
+      console.error('Error moviendo miembro:', e);
+    }
+
+    return { ok: true, member };
+  }
+
   async function resetDonations(clanId, memberId) {
     const members = Store.getMembers(clanId);
     const m = members.find(x => String(x.id) === String(memberId));
@@ -248,10 +282,11 @@ const War = (() => {
     setCWLAttacks,
     getCWLState,
     saveCWLReg,
-    // Borrar
+    // Borrar / Mover
     deleteMember,
     deleteWar,
     resetDonations,
+    moveMember,
     // Utils
     getResultLabel,
     getResultBadgeClass,
