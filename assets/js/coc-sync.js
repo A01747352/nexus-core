@@ -118,7 +118,7 @@ const CocSync = (() => {
         result,
         starsUs:   clan.stars,
         starsThem: opponent.stars,
-        source:    'coc-api', // Marcar como auto-sync
+        source:    'coc-api', // Marcar como auto-syn
       });
 
       // Sync ataques de los miembros en esta guerra
