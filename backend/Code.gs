@@ -110,7 +110,7 @@ function saveMembersSheet(clan, members) {
 }
 
 // ── Guerras ───────────────────────────────────────────────────
-const WAR_HEADERS = ['date', 'type', 'result', 'starsUs', 'starsThem'];
+const WAR_HEADERS = ['date', 'type', 'result', 'starsUs', 'starsThem', 'roster'];
 
 function saveWarSheet(clan, war) {
   const sheet = getOrCreate('Guerras_' + clan, WAR_HEADERS);

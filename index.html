@@ -7,7 +7,7 @@
   <meta name="theme-color" content="#080612">
   <title>NEXUS CORE</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/styles.css">
 </head>
 <body>
@@ -84,11 +84,7 @@
       Bienvenido, <strong id="w-name">—</strong>
     </div>
 
-    <button class="icon-btn" onclick="App.toggleTheme()" title="Cambiar tema">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <path d="M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.389 5.389 0 0 1-4.4 2.26 5.403 5.403 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/>
-      </svg>
-    </button>
+
 
     <button class="icon-btn" onclick="App.syncAll()" title="Sincronizar con Sheets">
       <svg id="sync-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -435,6 +431,19 @@
     <div class="modal-footer">
       <button class="btn" onclick="App.closeModal('modal-rot')">Cancelar</button>
       <button class="btn btn-primary" onclick="App.saveRotation()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Detalle de guerra -->
+<div class="modal-overlay" id="modal-war-detail">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="war-detail-title">Detalle de guerra</div>
+    <div class="modal-sub" id="war-detail-sub"></div>
+    <div id="war-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" onclick="App.closeModal('modal-war-detail')">Cerrar</button>
     </div>
   </div>
 </div>

@@ -59,14 +59,25 @@ const War = (() => {
       }
     });
 
-    // 2. Guardar resultado con lista de participantes
+    // 2. Guardar resultado con roster detallado de participantes
+    const roster = members.map(m => {
+      const s = _warState[m.id] || {};
+      return {
+        id:      m.id,
+        name:    m.name,
+        tag:     m.tag || '',
+        entered: s.entered ? true : false,
+        attacks: s.entered ? (s.attacks || 0) : 0,
+      };
+    });
+
     const war = {
-      date:         warResult.date,
-      type:         warResult.type,
-      result:       warResult.result,
-      starsUs:      warResult.starsUs   || '',
-      starsThem:    warResult.starsThem || '',
-      participants: participants.join(', '),
+      date:      warResult.date,
+      type:      warResult.type,
+      result:    warResult.result,
+      starsUs:   warResult.starsUs   || '',
+      starsThem: warResult.starsThem || '',
+      roster:    JSON.stringify(roster),
     };
 
     Store.setMembers(_activeClan, members);

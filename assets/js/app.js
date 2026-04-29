@@ -866,6 +866,7 @@ const App = (() => {
     // Modals
     openModal,
     closeModal,
+    showWarDetail,
     // Borrar / Mover
     confirmDeleteMember,
     confirmDeleteWar,
