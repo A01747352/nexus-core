@@ -294,7 +294,11 @@ const App = (() => {
                 <td><span class="tag">${w.date || '—'}</span></td>
                 <td>${w.starsUs || '—'} — ${w.starsThem || '—'}</td>
                 <td><span class="badge ${bc(w.result)}">${lbl(w.result)}</span></td>
-              ${canEd ? `<td><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteWar('${clanId}',${i})">Borrar</button></td>` : '<td></td>'}
+              <td style="display:flex;gap:4px;align-items:center">
+                ${p ? `<button class="btn btn-sm" style="padding:3px 10px;font-size:11px" onclick="App.showWarDetail('${clanId}',${wars.length-1-i})">Ver</button>` : ''}
+                ${canEd ? `<button class="btn btn-sm" style="padding:3px 10px;font-size:11px" onclick="App.openWarEdit('${clanId}',${wars.length-1-i})">Editar</button>` : ''}
+                ${canEd ? `<button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteWar('${clanId}',${wars.length-1-i})">✕</button>` : ''}
+              </td>
               </tr>`).join('')}
             </tbody>
           </table></div>`}`;
