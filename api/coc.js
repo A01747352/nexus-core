@@ -87,12 +87,15 @@ export default async function handler(req, res) {
 
 async function cocFetch(path) {
   const url = `${COC_API}${path}`;
+  console.log('Fetching:', url);
+  console.log('Key starts with:', COC_KEY?.substring(0, 30));
   const res = await fetch(url, {
     headers: {
       'Authorization': `Bearer ${COC_KEY}`,
       'Accept': 'application/json',
     },
   });
+  console.log('Response status:', res.status);
 
   if (res.status === 403) throw new Error('API key inválida o IP no autorizada.');
   if (res.status === 404) throw new Error('Clan no encontrado.');
