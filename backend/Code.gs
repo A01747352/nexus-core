@@ -3,7 +3,7 @@
 //  Compatible con nexus_core.html (versión completa con login)
 //
 //  INSTRUCCIONES:
-//  1. Abre tu Google Sheet
+//  1. Abre tu Google Sheets
 //  2. Ve a Extensions > Apps Script
 //  3. Borra el código anterior y pega este completo
 //  4. Guarda con Ctrl+S
