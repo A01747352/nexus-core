@@ -288,18 +288,32 @@ const App = (() => {
         ? '<div class="empty">Sin guerras registradas.</div>'
         : `<div class="tbl-wrap"><table class="tbl">
             <thead><tr><th>Tipo</th><th>Fecha</th><th>Estrellas</th><th>Resultado</th><th></th></tr></thead>
-            <tbody>${[...wars].reverse().slice(0, 8).map((w, i) => `
-              <tr>
+            <tbody>${[...wars].reverse().slice(0, 10).map((w, i) => {
+                const realIdx = wars.length - 1 - i;
+                let p = null;
+                if (w.roster) {
+                  try {
+                    const r = typeof w.roster === 'string' ? JSON.parse(w.roster) : w.roster;
+                    const ent = r.filter(x => x.entered).length;
+                    const atk = r.reduce((s, x) => s + (x.attacks || 0), 0);
+                    p = { entered: ent, total: r.length, attacks: atk, maxAtks: ent * 2 };
+                  } catch(e) {}
+                }
+                const pctAtk = p && p.maxAtks > 0 ? Math.round(p.attacks / p.maxAtks * 100) : 0;
+                return `<tr>
                 <td class="n">${w.type === 'cwl' ? 'CWL' : 'Guerra'}</td>
                 <td><span class="tag">${w.date || '—'}</span></td>
                 <td>${w.starsUs || '—'} — ${w.starsThem || '—'}</td>
                 <td><span class="badge ${bc(w.result)}">${lbl(w.result)}</span></td>
-              <td style="display:flex;gap:4px;align-items:center">
-                ${p ? `<button class="btn btn-sm" style="padding:3px 10px;font-size:11px" onclick="App.showWarDetail('${clanId}',${wars.length-1-i})">Ver</button>` : ''}
-                ${canEd ? `<button class="btn btn-sm" style="padding:3px 10px;font-size:11px" onclick="App.openWarEdit('${clanId}',${wars.length-1-i})">Editar</button>` : ''}
-                ${canEd ? `<button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteWar('${clanId}',${wars.length-1-i})">✕</button>` : ''}
-              </td>
-              </tr>`).join('')}
+                <td>${p
+                  ? `<div style="font-size:12px;color:var(--text2)">${p.entered}/${p.total} · ${p.attacks}/${p.maxAtks} atq.</div><div class="prog" style="min-width:70px"><div class="prog-bar ${pctAtk >= 100 ? 'g' : ''}" style="width:${Math.min(pctAtk,100)}%"></div></div>`
+                  : '<span style="font-size:11px;color:var(--text3)">Sin detalle</span>'}</td>
+                <td style="display:flex;gap:4px;align-items:center">
+                  ${p ? `<button class="btn btn-sm" style="padding:3px 10px;font-size:11px" onclick="App.showWarDetail('${clanId}',${realIdx})">Ver</button>` : ''}
+                  ${canEd ? `<button class="btn btn-sm" style="padding:3px 10px;font-size:11px" onclick="App.openWarEdit('${clanId}',${realIdx})">Editar</button>` : ''}
+                  ${canEd ? `<button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteWar('${clanId}',${realIdx})">✕</button>` : ''}
+                </td>
+              </tr>`;}).join('')}
             </tbody>
           </table></div>`}`;
 
