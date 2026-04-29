@@ -730,6 +730,72 @@ const App = (() => {
     renderClan();
   }
 
+
+  // ── Ver detalle de guerra ──────────────────────────────────
+  function showWarDetail(clanId, warIndex) {
+    const wars = Store.getWars(clanId);
+    const war  = wars[warIndex];
+    if (!war) return;
+
+    let roster = [];
+    try {
+      roster = typeof war.roster === 'string' ? JSON.parse(war.roster) : (war.roster || []);
+    } catch(e) { roster = []; }
+
+    const meta     = Store.CLANS_META.find(c => c.id === clanId);
+    const entered  = roster.filter(function(m) { return m.entered; });
+    const absent   = roster.filter(function(m) { return !m.entered; });
+    const totalAtk = entered.reduce(function(s, m) { return s + (m.attacks || 0); }, 0);
+    const maxAtk   = entered.length * 2;
+    const pctAtk   = maxAtk > 0 ? Math.round(totalAtk / maxAtk * 100) : 0;
+    const bc       = War.getResultBadgeClass(war.result);
+    const lbl      = War.getResultLabel(war.result);
+
+    document.getElementById('war-detail-title').textContent =
+      (war.type === 'cwl' ? 'CWL' : 'Guerra') + ' — ' + meta.name;
+    document.getElementById('war-detail-sub').textContent =
+      (war.date || '—') + ' · ' + (war.starsUs || '—') + ' — ' + (war.starsThem || '—') + ' estrellas';
+
+    const enteredRows = entered.map(function(m) {
+      const pct = Math.round((m.attacks || 0) / 2 * 100);
+      const sb  = m.attacks >= 2 ? 'b-green' : m.attacks === 1 ? 'b-amber' : 'b-red';
+      const sl  = m.attacks >= 2 ? 'Completo' : m.attacks === 1 ? '1 ataque' : 'No atacó';
+      return '<tr>' +
+        '<td class="n"><div class="fl-row"><div class="av av' + meta.av + '">' + m.name.slice(0,2).toUpperCase() + '</div>' + m.name + '</div></td>' +
+        '<td><span class="tag">' + (m.tag || '—') + '</span></td>' +
+        '<td>' + (m.attacks || 0) + '/2<div class="prog" style="min-width:50px"><div class="prog-bar ' + (pct >= 100 ? 'g' : pct > 0 ? '' : 'r') + '" style="width:' + pct + '%"></div></div></td>' +
+        '<td><span class="badge ' + sb + '">' + sl + '</span></td></tr>';
+    }).join('');
+
+    const absentBadges = absent.map(function(m) {
+      return '<span class="badge b-gray">' + m.name + '</span>';
+    }).join('');
+
+    let html = '<div class="fl-row" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">' +
+      '<span class="badge ' + bc + '">' + lbl + '</span>' +
+      '<span style="font-size:13px;color:var(--text2)">' + entered.length + '/' + roster.length + ' entraron</span>' +
+      '<span style="font-size:13px;color:var(--text2)">' + totalAtk + '/' + maxAtk + ' ataques</span>' +
+      '<div class="prog" style="flex:1;min-width:100px"><div class="prog-bar ' + (pctAtk >= 100 ? 'g' : '') + '" style="width:' + pctAtk + '%"></div></div></div>';
+
+    if (entered.length) {
+      html += '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">Participaron (' + entered.length + ')</div>' +
+        '<div class="tbl-wrap" style="margin-bottom:16px"><table class="tbl"><thead><tr><th>Jugador</th><th>Tag</th><th>Ataques</th><th>Estado</th></tr></thead><tbody>' +
+        enteredRows + '</tbody></table></div>';
+    }
+
+    if (absent.length) {
+      html += '<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:8px">No participaron (' + absent.length + ')</div>' +
+        '<div style="display:flex;flex-wrap:wrap;gap:6px">' + absentBadges + '</div>';
+    }
+
+    if (!roster.length) {
+      html = '<div class="empty">Esta guerra no tiene roster. Las guerras registradas desde ahora mostrarán el detalle aquí.</div>';
+    }
+
+    document.getElementById('war-detail-body').innerHTML = html;
+    openModal('modal-war-detail');
+  }
+
   // ── Borrar ────────────────────────────────────────────────
   function confirmDeleteMember(clanId, memberId) {
     const m = Store.getMember(clanId, memberId);
