@@ -350,17 +350,18 @@ const App = (() => {
   }
 
   // ── War Page ──────────────────────────────────────────────
-  function renderWarPage() {
-    const clanId = Store.getUI().activeClan;
-    const meta   = Store.CLANS_META.find(c => c.id === clanId);
+  function renderWarPage(existingWar) {
+    const clanId  = Store.getUI().activeClan;
+    const meta    = Store.CLANS_META.find(c => c.id === clanId);
     const members = Store.getMembers(clanId);
+    const isEdit  = !!existingWar;
 
-    War.startWarReg(clanId);
+    if (!isEdit) War.startWarReg(clanId);
 
-    document.getElementById('war-page-title').textContent = `Registro War — ${meta.name}`;
-    document.getElementById('war-page-sub').textContent   = 'Marca ataques y resultado en un solo paso';
+    document.getElementById('war-page-title').textContent = (isEdit ? 'Editar War — ' : 'Registro War — ') + meta.name;
+    document.getElementById('war-page-sub').textContent   = isEdit ? 'Modifica la participación y el resultado' : 'Marca ataques y resultado en un solo paso';
     document.getElementById('war-page-actions').innerHTML =
-      '<button id="war-save-btn" class="btn btn-primary btn-sm" onclick="App.saveWarFull()">Guardar todo</button>';
+      '<button id="war-save-btn" class="btn btn-primary btn-sm" onclick="App.saveWarFull()">' + (isEdit ? 'Guardar cambios' : 'Guardar todo') + '</button>';
 
     document.getElementById('war-reg-body').innerHTML = !members.length
       ? '<div class="card"><div class="empty">Sin miembros en este clan.</div></div>'
@@ -423,9 +424,38 @@ const App = (() => {
           </div>
         </div>`;
 
-    // Set today's date
-    const dateEl = document.getElementById('war-res-date');
-    if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+    // Set fecha — hoy si nueva, la de la guerra si edición
+    const dateEl   = document.getElementById('war-res-date');
+    const typeEl   = document.getElementById('war-res-type');
+    const resultEl = document.getElementById('war-res-result');
+    const usEl     = document.getElementById('war-res-us');
+    const themEl   = document.getElementById('war-res-them');
+
+    if (existingWar) {
+      if (dateEl)   dateEl.value   = existingWar.date   || new Date().toISOString().split('T')[0];
+      if (typeEl)   typeEl.value   = existingWar.type   || 'war';
+      if (resultEl) resultEl.value = existingWar.result || 'win';
+      if (usEl)     usEl.value     = existingWar.starsUs   || '';
+      if (themEl)   themEl.value   = existingWar.starsThem || '';
+
+      // Precargar checks del roster
+      if (existingWar.roster) {
+        try {
+          const roster = typeof existingWar.roster === 'string'
+            ? JSON.parse(existingWar.roster) : existingWar.roster;
+          roster.forEach(m => {
+            const eEl  = document.getElementById('we-' + m.id);
+            const a1El = document.getElementById('wa1-' + m.id);
+            const a2El = document.getElementById('wa2-' + m.id);
+            if (eEl && m.entered)       eEl.className  = 'ck on';
+            if (a1El && m.attacks >= 1) a1El.className = 'ck-n on';
+            if (a2El && m.attacks >= 2) a2El.className = 'ck-n on';
+          });
+        } catch(e) {}
+      }
+    } else {
+      if (dateEl) dateEl.value = new Date().toISOString().split('T')[0];
+    }
   }
 
   async function saveWarFull() {
@@ -731,6 +761,26 @@ const App = (() => {
   }
 
 
+
+  // ── Editar guerra existente ───────────────────────────────
+  function openWarEdit(clanId, warIndex) {
+    const war = War.startWarEdit(clanId, warIndex);
+    if (!war) return;
+
+    Store.setActiveClan(clanId);
+    Store.setActivePage('war');
+
+    // Activar nav
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const navEl = document.getElementById('nav-clan-' + clanId);
+    if (navEl) navEl.classList.add('active');
+
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById('page-war').classList.add('active');
+
+    renderWarPage(war); // pasar guerra para precargar form
+  }
+
   // ── Ver detalle de guerra ──────────────────────────────────
   function showWarDetail(clanId, warIndex) {
     const wars = Store.getWars(clanId);
@@ -933,6 +983,7 @@ const App = (() => {
     openModal,
     closeModal,
     showWarDetail,
+    openWarEdit,
     // Borrar / Mover
     confirmDeleteMember,
     confirmDeleteWar,

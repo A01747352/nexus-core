@@ -10,11 +10,37 @@
 const War = (() => {
 
   let _warState   = {};
+  let _editIndex  = null;  // índice de guerra siendo editada (null = nueva)
+  let _editClanId = null;
   let _cwlState   = {};
   let _activeClan = '';
   let _saving     = false; // Bandera anti-doble-click
 
   // ── War Registration ──────────────────────────────────────
+
+  function startWarEdit(clanId, warIndex) {
+    _activeClan = clanId;
+    _activeType = 'war';
+    _editIndex  = warIndex;
+    _editClanId = clanId;
+    _warState   = {};
+    _saving     = false;
+
+    // Precargar roster existente si tiene
+    const war = Store.getWars(clanId)[warIndex];
+    if (war && war.roster) {
+      try {
+        const roster = typeof war.roster === 'string' ? JSON.parse(war.roster) : war.roster;
+        roster.forEach(m => {
+          _warState[m.id] = { entered: m.entered, attacks: m.attacks || 0 };
+        });
+      } catch(e) {}
+    }
+    return war; // devuelve la guerra para precargar el form
+  }
+
+  function getEditIndex() { return _editIndex; }
+  function clearEdit()    { _editIndex = null; _editClanId = null; }
 
   function startWarReg(clanId) {
     _activeClan = clanId;
@@ -81,9 +107,21 @@ const War = (() => {
     };
 
     Store.setMembers(_activeClan, members);
-    Store.addWar(_activeClan, war);
-    Store.logActivity(`Guerra ${_resultLabel(war.result)} registrada`, _activeClan);
-    _warState = {};
+
+    // Si es edición reemplazar, si es nueva agregar
+    if (_editIndex !== null) {
+      const wars = Store.getWars(_activeClan);
+      wars[_editIndex] = war;
+      Store.setWars(_activeClan, wars);
+      Store.logActivity('Guerra editada: ' + _resultLabel(war.result), _activeClan);
+    } else {
+      Store.addWar(_activeClan, war);
+      Store.logActivity('Guerra registrada: ' + _resultLabel(war.result), _activeClan);
+    }
+
+    _warState   = {};
+    _editIndex  = null;
+    _editClanId = null;
 
     try {
       await Promise.all([
@@ -282,6 +320,9 @@ const War = (() => {
   return {
     // War
     startWarReg,
+    startWarEdit,
+    getEditIndex,
+    clearEdit,
     toggleWarEntered,
     setWarAttacks,
     getWarState,
