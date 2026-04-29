@@ -106,6 +106,11 @@ function encodeTag(tag) {
   return (tag || '').replace(/^#/, '').toUpperCase();
 }
 
+app.get('/myip', async (req, res) => {
+  const r = await fetch('https://api.ipify.org?format=json');
+  const d = await r.json();
+  res.json(d);
+});
 // ── Start ─────────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`NEXUS CORE CoC Proxy corriendo en puerto ${PORT}`);
