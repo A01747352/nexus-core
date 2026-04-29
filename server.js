@@ -107,9 +107,12 @@ function encodeTag(tag) {
 }
 
 app.get('/myip', async (req, res) => {
-  const r = await fetch('https://api.ipify.org?format=json');
-  const d = await r.json();
-  res.json(d);
+  const [r1, r2] = await Promise.all([
+    fetch('https://api.ipify.org?format=json'),
+    fetch('https://api64.ipify.org?format=json'),
+  ]);
+  const [d1, d2] = await Promise.all([r1.json(), r2.json()]);
+  res.json({ ipv4: d1.ip, ipv6: d2.ip });
 });
 // ── Start ─────────────────────────────────────────────────────
 app.listen(PORT, () => {
