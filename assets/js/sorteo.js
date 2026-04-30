@@ -12,8 +12,8 @@ const Sorteo = (() => {
 
   // ── Criterios de elegibilidad ─────────────────────────────
   const CRITERIA = {
-    MIN_DONATIONS: 100,
-    MIN_WAR_COMPLETION: 1.0, // 100% de ataques realizados
+    MIN_DONATIONS: 1000,
+    MIN_WAR_COMPLETION: 0.7, // 70% de ataques realizados
   };
 
   const PRIZES = [
