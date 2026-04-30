@@ -181,7 +181,7 @@ const Store = (() => {
     return (
       (member.warTotal || 0) > 0 &&
       (member.warAttacks || 0) >= (member.warTotal || 0) &&
-      (member.donTotal || 0) >= 100
+      (member.donTotal || 0) >= 1000
     );
   }
 
