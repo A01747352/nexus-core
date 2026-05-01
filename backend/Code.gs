@@ -50,7 +50,8 @@ function handle(e) {
       case 'saveWar':      saveWarSheet(p.clan, JSON.parse(p.war));         result={ok:true}; break;
       case 'saveRotation': saveRotationSheet(JSON.parse(p.rotation));       result={ok:true}; break;
       case 'saveActivity':  saveActivitySheet(JSON.parse(p.entry));         result={ok:true}; break;
-      case 'replaceWars':   replaceWarsSheet(p.clan, JSON.parse(p.wars));     result={ok:true}; break;
+      case 'replaceWars':        replaceWarsSheet(p.clan, JSON.parse(p.wars));         result={ok:true}; break;
+      case 'replaceRotations':   replaceRotationsSheet(JSON.parse(p.rotations));       result={ok:true}; break;
       default:             result = { error: 'Acción desconocida: ' + (p.action || 'ninguna') };
     }
   } catch(err) {
@@ -157,6 +158,15 @@ function replaceWarsSheet(clan, wars) {
   clearData(sheet);
   wars.forEach(w => {
     sheet.appendRow(WAR_HEADERS.map(h => w[h] !== undefined ? w[h] : ''));
+  });
+}
+
+// ── Reemplazar historial completo de rotaciones ───────────────
+function replaceRotationsSheet(rotations) {
+  const sheet = getOrCreate('Rotaciones', ROT_HEADERS);
+  clearData(sheet);
+  rotations.forEach(r => {
+    sheet.appendRow(ROT_HEADERS.map(h => r[h] !== undefined ? r[h] : ''));
   });
 }
 

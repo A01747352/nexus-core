@@ -116,9 +116,91 @@ const Rotations = (() => {
     return Store.CLANS_META.find(c => c.id === clanId)?.name || clanId;
   }
 
+  // ── Editar rotación ───────────────────────────────────────
+  async function updateRotation(displayIndex, newData) {
+    const allRots = Store.getRotations();
+    const realIndex = allRots.length - 1 - displayIndex;
+    const oldRot = allRots[realIndex];
+    if (!oldRot) return { ok: false, error: 'Rotación no encontrada.' };
+
+    if (!newData.name?.trim())   return { ok: false, error: 'El nombre es requerido.' };
+    if (!newData.tag?.trim())    return { ok: false, error: 'El tag de CoC es requerido.' };
+    if (newData.fromClan === newData.toClan)
+      return { ok: false, error: 'El clan de origen y destino no pueden ser el mismo.' };
+
+    const newCleanTag = _normalizeTag(newData.tag);
+    const newDon = Math.max(0, parseInt(newData.donations) || 0);
+
+    // Revertir donaciones anteriores
+    const oldMember = Store.findMemberByTag(oldRot.tag);
+    if (oldMember) {
+      oldMember.member.donTotal = Math.max(0, (oldMember.member.donTotal || 0) - (oldRot.don || 0));
+      Store.setMembers(oldMember.clanId, Store.getMembers(oldMember.clanId));
+    }
+
+    // Aplicar nuevas donaciones
+    const newMember = Store.findMemberByTag(newCleanTag);
+    if (newMember) {
+      newMember.member.donTotal = (newMember.member.donTotal || 0) + newDon;
+      Store.setMembers(newMember.clanId, Store.getMembers(newMember.clanId));
+    }
+
+    allRots[realIndex] = {
+      date: newData.date || oldRot.date,
+      tag:  newCleanTag,
+      name: newData.name.trim(),
+      from: newData.fromClan,
+      to:   newData.toClan,
+      don:  newDon,
+    };
+    Store.setRotations(allRots);
+    Store.logActivity(`Rotación editada: ${newData.name.trim()}`, newData.fromClan);
+
+    const promises = [API.replaceRotations(allRots)];
+    const affectedClans = new Set();
+    if (oldMember) affectedClans.add(oldMember.clanId);
+    if (newMember) affectedClans.add(newMember.clanId);
+    const user = Auth.getSession()?.name;
+    affectedClans.forEach(clanId => {
+      promises.push(API.saveMembersWithLog(clanId, Store.getMembers(clanId), `Rotación editada: ${newData.name.trim()}`, user));
+    });
+
+    try { await Promise.all(promises); } catch(e) { console.error('Error guardando rotación editada:', e); }
+
+    return { ok: true };
+  }
+
+  // ── Eliminar rotación ─────────────────────────────────────
+  async function deleteRotation(displayIndex) {
+    const allRots = Store.getRotations();
+    const realIndex = allRots.length - 1 - displayIndex;
+    const rot = allRots[realIndex];
+    if (!rot) return;
+
+    // Revertir donaciones
+    const found = Store.findMemberByTag(rot.tag);
+    if (found) {
+      found.member.donTotal = Math.max(0, (found.member.donTotal || 0) - (rot.don || 0));
+      Store.setMembers(found.clanId, Store.getMembers(found.clanId));
+    }
+
+    const newRots = allRots.filter((_, i) => i !== realIndex);
+    Store.setRotations(newRots);
+    Store.logActivity(`Rotación eliminada: ${rot.name}`, rot.from);
+
+    const promises = [API.replaceRotations(newRots)];
+    if (found) {
+      promises.push(API.saveMembersWithLog(found.clanId, Store.getMembers(found.clanId), `Rotación eliminada: ${rot.name}`, Auth.getSession()?.name));
+    }
+
+    try { await Promise.all(promises); } catch(e) { console.error('Error eliminando rotación:', e); }
+  }
+
   // ── API pública ───────────────────────────────────────────
   return {
     saveRotation,
+    updateRotation,
+    deleteRotation,
     getCurrentWeekendRotations,
     getAllRotations,
     getRotationsByClan,

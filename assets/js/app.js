@@ -86,7 +86,7 @@ const App = (() => {
   function _populateClanSelects() {
     const opts = Store.CLANS_META.map(c =>
       `<option value="${c.id}">${c.name}</option>`).join('');
-    ['rot-from', 'rot-to'].forEach(id => {
+    ['rot-from', 'rot-to', 'er-from', 'er-to'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.innerHTML = opts;
     });
@@ -360,7 +360,7 @@ const App = (() => {
                       ? '<span style="color:#EF9F27;font-size:13px">★</span>' : ''}
                   </td>
                   <td><span class="badge ${ok ? 'b-green' : 'b-amber'}">${ok ? 'Apto' : 'Pendiente'}</span></td>
-                  ${canEd ? `<td style="display:flex;gap:4px"><button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="App.openMoveMember('${clanId}','${m.id}')">Mover</button><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteMember('${clanId}','${m.id}')">Borrar</button></td>` : '<td></td>'}
+                  ${canEd ? `<td style="display:flex;gap:4px;flex-wrap:wrap"><button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="App.openEditMember('${clanId}','${m.id}')">Editar</button><button class="btn btn-sm" style="padding:3px 8px;font-size:11px" onclick="App.openMoveMember('${clanId}','${m.id}')">Mover</button><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteMember('${clanId}','${m.id}')">Borrar</button></td>` : '<td></td>'}
                 </tr>`;
             }).join('')}
             </tbody>
@@ -611,9 +611,11 @@ const App = (() => {
       : `<div class="tbl-wrap"><table class="tbl">
           <thead><tr>
             <th>Jugador</th><th>Tag CoC</th><th>Origen</th>
-            <th>Visitó</th><th>Donaciones</th><th>Fecha</th>
+            <th>Visitó</th><th>Donaciones</th><th>Fecha</th><th></th>
           </tr></thead>
-          <tbody>${all.map(r => `
+          <tbody>${all.map((r, i) => {
+            const canEd = Auth.canEdit(r.from);
+            return `
             <tr>
               <td class="n">${r.name}</td>
               <td><span class="tag">${r.tag}</span></td>
@@ -622,7 +624,9 @@ const App = (() => {
               <td>${r.don || 0}${(r.don || 0) >= 1000
                 ? ' <span style="color:#EF9F27">★</span>' : ''}</td>
               <td><span class="tag">${r.date || '—'}</span></td>
-            </tr>`).join('')}
+              <td>${canEd ? `<div style="display:flex;gap:4px"><button class="btn btn-sm" style="padding:3px 10px;font-size:11px" onclick="App.openEditRotation(${i})">Editar</button><button class="btn btn-sm" style="color:var(--danger-light);border-color:var(--danger-bg);padding:3px 8px;font-size:11px" onclick="App.confirmDeleteRotation(${i})">✕</button></div>` : ''}</td>
+            </tr>`;
+          }).join('')}
           </tbody>
         </table></div>`;
   }
@@ -864,6 +868,123 @@ const App = (() => {
     openModal('modal-war-detail');
   }
 
+  // ── Editar miembro ────────────────────────────────────────
+  function openEditMember(clanId, memberId) {
+    const m = Store.getMember(clanId, memberId);
+    if (!m) return;
+
+    document.getElementById('em-clan').value        = clanId;
+    document.getElementById('em-id').value          = memberId;
+    document.getElementById('em-name').value        = m.name || '';
+    document.getElementById('em-tag').value         = m.tag  !== '—' ? (m.tag || '') : '';
+    document.getElementById('em-role').value        = m.role || 'Miembro';
+    document.getElementById('em-wartotal').value    = m.warTotal    || 0;
+    document.getElementById('em-warattacks').value  = m.warAttacks  || 0;
+    document.getElementById('em-cwltotal').value    = m.cwlTotal    || 0;
+    document.getElementById('em-cwlatktotal').value = m.cwlAtkTotal || 0;
+    document.getElementById('em-cwlmirrors').value  = m.cwlMirrors  || 0;
+    document.getElementById('em-dontotal').value    = m.donTotal    || 0;
+
+    const clanName = Store.CLANS_META.find(c => c.id === clanId)?.name;
+    document.getElementById('modal-edit-member-clan').textContent = clanName;
+
+    openModal('modal-edit-member');
+  }
+
+  async function confirmEditMember() {
+    const clanId   = document.getElementById('em-clan').value;
+    const memberId = document.getElementById('em-id').value;
+    const name     = document.getElementById('em-name').value.trim();
+    if (!name) { alert('El nombre es requerido.'); return; }
+
+    const btn = document.getElementById('em-save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    const patch = {
+      name,
+      tag:         document.getElementById('em-tag').value.trim().toUpperCase() || '—',
+      role:        document.getElementById('em-role').value,
+      warTotal:    parseInt(document.getElementById('em-wartotal').value)    || 0,
+      warAttacks:  parseInt(document.getElementById('em-warattacks').value)  || 0,
+      cwlTotal:    parseInt(document.getElementById('em-cwltotal').value)    || 0,
+      cwlAtkTotal: parseInt(document.getElementById('em-cwlatktotal').value) || 0,
+      cwlMirrors:  parseInt(document.getElementById('em-cwlmirrors').value)  || 0,
+      donTotal:    parseInt(document.getElementById('em-dontotal').value)    || 0,
+    };
+
+    Store.updateMember(clanId, memberId, patch);
+    Store.logActivity(`Miembro editado: ${name}`, clanId);
+
+    try {
+      await API.saveMembersWithLog(clanId, Store.getMembers(clanId), `Miembro editado: ${name}`, Auth.getSession()?.name);
+    } catch(e) {
+      console.error('Error guardando miembro editado:', e);
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    closeModal('modal-edit-member');
+    showToast('✓ Miembro actualizado');
+    renderClan();
+  }
+
+  // ── Editar / Eliminar rotación ────────────────────────────
+  function openEditRotation(displayIndex) {
+    const all = Rotations.getAllRotations();
+    const rot = all[displayIndex];
+    if (!rot) return;
+
+    document.getElementById('er-index').value = displayIndex;
+    document.getElementById('er-date').value  = rot.date || '';
+    document.getElementById('er-tag').value   = rot.tag  || '';
+    document.getElementById('er-name').value  = rot.name || '';
+    document.getElementById('er-don').value   = rot.don  || 0;
+
+    // Selects ya están poblados por _populateClanSelects al hacer login
+    document.getElementById('er-from').value = rot.from || '';
+    document.getElementById('er-to').value   = rot.to   || '';
+
+    openModal('modal-edit-rot');
+  }
+
+  async function confirmEditRotation() {
+    const displayIndex = parseInt(document.getElementById('er-index').value);
+
+    const btn = document.getElementById('er-save-btn');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    const res = await Rotations.updateRotation(displayIndex, {
+      date:      document.getElementById('er-date').value,
+      tag:       document.getElementById('er-tag').value,
+      name:      document.getElementById('er-name').value,
+      fromClan:  document.getElementById('er-from').value,
+      toClan:    document.getElementById('er-to').value,
+      donations: document.getElementById('er-don').value,
+    });
+
+    btn.disabled = false;
+    btn.textContent = 'Guardar cambios';
+
+    if (!res.ok) { alert(res.error); return; }
+
+    closeModal('modal-edit-rot');
+    showToast('✓ Rotación actualizada');
+    renderRotaciones();
+  }
+
+  async function confirmDeleteRotation(displayIndex) {
+    const all = Rotations.getAllRotations();
+    const rot = all[displayIndex];
+    if (!rot) return;
+    if (!confirm(`¿Eliminar la rotación de ${rot.name}? Esta acción no se puede deshacer.`)) return;
+
+    await Rotations.deleteRotation(displayIndex);
+    showToast('✓ Rotación eliminada');
+    renderRotaciones();
+  }
+
   // ── Borrar ────────────────────────────────────────────────
   function confirmDeleteMember(clanId, memberId) {
     const m = Store.getMember(clanId, memberId);
@@ -1002,6 +1123,12 @@ const App = (() => {
     closeModal,
     showWarDetail,
     openWarEdit,
+    // Editar
+    openEditMember,
+    confirmEditMember,
+    openEditRotation,
+    confirmEditRotation,
+    confirmDeleteRotation,
     // Borrar / Mover
     confirmDeleteMember,
     confirmDeleteWar,

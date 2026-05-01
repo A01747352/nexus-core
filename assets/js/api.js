@@ -39,7 +39,8 @@ const API = (() => {
   async function saveWar(clanId, war)              { return call({ action: 'saveWar', clan: clanId, war: JSON.stringify(war) }); }
   async function saveRotation(rotation)            { return call({ action: 'saveRotation', rotation: JSON.stringify(rotation) }); }
   async function saveActivity(entry)               { return call({ action: 'saveActivity', entry: JSON.stringify(entry) }); }
-  async function replaceWars(clanId, wars)          { return call({ action: 'replaceWars', clan: clanId, wars: JSON.stringify(wars) }); }
+  async function replaceWars(clanId, wars)           { return call({ action: 'replaceWars', clan: clanId, wars: JSON.stringify(wars) }); }
+  async function replaceRotations(rotations)         { return call({ action: 'replaceRotations', rotations: JSON.stringify(rotations) }); }
 
   async function saveMembersWithLog(clanId, members, actionLabel, userName) {
     const entry = { action: actionLabel, clan: clanId, user: userName || '—', date: new Date().toLocaleDateString('es-MX') };
@@ -52,5 +53,5 @@ const API = (() => {
     return { ok: true };
   }
 
-  return { setUrl, getUrl, isConnected, getAll, saveMembers, saveWar, replaceWars, saveRotation, saveActivity, saveMembersWithLog, validateUrl };
+  return { setUrl, getUrl, isConnected, getAll, saveMembers, saveWar, replaceWars, replaceRotations, saveRotation, saveActivity, saveMembersWithLog, validateUrl };
 })();
