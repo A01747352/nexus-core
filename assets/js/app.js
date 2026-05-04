@@ -636,10 +636,17 @@ const App = (() => {
   }
 
   async function saveDonReg() {
-    const res = await Donations.saveWeek();
-    if (!res.ok) { alert(res.message); return; }
-    showToast('✓ Donaciones guardadas');
-    setTimeout(() => goPage('clan'), 2000);
+    const btn = document.querySelector('#don-page-actions .btn-primary');
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+    try {
+      const res = await Donations.saveWeek();
+      showToast(res.ok ? '✓ Donaciones guardadas' : '✓ Sin cambios nuevos');
+    } catch(e) {
+      showToast('Error al guardar');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Guardar semana'; }
+    }
+    setTimeout(() => goPage('clan'), 1800);
   }
 
   // ── Rotaciones Page ───────────────────────────────────────
