@@ -21,7 +21,7 @@ export default async function handler(req, res) {
     const action = req.query.action;
 
     // Acciones de escritura con payload grande van por POST
-    const writeActions = ['saveMembers', 'saveWar', 'saveRotation', 'saveActivity', 'replaceRotations'];
+    const writeActions = ['saveMembers', 'saveWar', 'saveRotation', 'saveActivity', 'replaceWars', 'replaceRotations'];
     const isWrite = writeActions.includes(action);
 
     let response;

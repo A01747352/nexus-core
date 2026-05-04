@@ -1121,6 +1121,55 @@ const App = (() => {
     document.getElementById(id)?.classList.remove('open');
   }
 
+  // ── Export CSV ────────────────────────────────────────────
+  function exportCSV(type) {
+    let rows, headers, filename;
+
+    if (type === 'members') {
+      headers = ['clan', 'name', 'tag', 'role', 'warTotal', 'warAttacks', 'cwlTotal', 'cwlAtkTotal', 'cwlMirrors', 'donTotal'];
+      rows = [];
+      Store.CLAN_IDS.forEach(id => {
+        Store.getMembers(id).forEach(m => {
+          rows.push([id, m.name, m.tag || '', m.role || 'Miembro',
+            m.warTotal || 0, m.warAttacks || 0,
+            m.cwlTotal || 0, m.cwlAtkTotal || 0, m.cwlMirrors || 0,
+            m.donTotal || 0]);
+        });
+      });
+      filename = 'nexus_miembros_' + _csvDate() + '.csv';
+
+    } else if (type === 'wars') {
+      headers = ['clan', 'date', 'type', 'result', 'starsUs', 'starsThem'];
+      rows = [];
+      Store.CLAN_IDS.forEach(id => {
+        Store.getWars(id).forEach(w => {
+          rows.push([id, w.date || '', w.type || 'war', w.result || '',
+            w.starsUs || '', w.starsThem || '']);
+        });
+      });
+      filename = 'nexus_guerras_' + _csvDate() + '.csv';
+
+    } else {
+      return;
+    }
+
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(','))
+      .join('\r\n');
+
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function _csvDate() {
+    return new Date().toISOString().slice(0, 10);
+  }
+
   // ── Utils ─────────────────────────────────────────────────
   function _setDate() {
     const el = document.getElementById('dash-date');
@@ -1172,6 +1221,8 @@ const App = (() => {
     confirmMoveMember,
     // War nuevo flujo
     saveWarFull,
+    // Export
+    exportCSV,
   };
 
 })();

@@ -319,6 +319,25 @@
         </p>
         <div class="tbl-wrap"><div id="users-table"></div></div>
       </div>
+
+      <div class="card">
+        <div class="card-hd">
+          <span class="card-title">Exportar datos</span>
+          <span class="badge b-gray">CSV · compatible con Excel</span>
+        </div>
+        <p class="section-hint">
+          Descarga un backup de los datos actuales en formato CSV.
+          Los archivos se generan desde la sesión local — no requieren conexión a Sheets.
+        </p>
+        <div class="fl-row" style="gap:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="App.exportCSV('members')">
+            ↓ Miembros (todos los clanes)
+          </button>
+          <button class="btn btn-sm" onclick="App.exportCSV('wars')">
+            ↓ Historial de guerras
+          </button>
+        </div>
+      </div>
     </div>
 
   </main>
