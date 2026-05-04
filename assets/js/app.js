@@ -221,6 +221,47 @@ const App = (() => {
         </div>`;
     }).join('');
 
+    // ── Ranking global de miembros ──────────────────────────
+    const allMembers = [];
+    Store.CLAN_IDS.forEach(id => {
+      const meta = Store.CLANS_META.find(c => c.id === id);
+      Store.getMembers(id).forEach(m => {
+        if ((m.warTotal || 0) === 0 && (m.donTotal || 0) === 0) return;
+        const atkRate = m.warTotal > 0 ? Math.round((m.warAttacks || 0) / (m.warTotal * 2) * 100) : 0;
+        const score   = Math.round((atkRate * 0.6) + (Math.min((m.donTotal || 0) / 10, 40)));
+        allMembers.push({ ...m, clanName: meta.name, clanColor: meta.color, av: meta.av, atkRate, score });
+      });
+    });
+    allMembers.sort((a, b) => b.score - a.score);
+    const top10 = allMembers.slice(0, 10);
+    const rankingEl = document.getElementById('ranking-card');
+    if (rankingEl) {
+      rankingEl.innerHTML = `
+        <div class="card-hd">
+          <span class="card-title">🏆 Ranking de miembros</span>
+          <span class="badge b-gold">Top 10 · todos los clanes</span>
+        </div>
+        <p style="font-size:12px;color:var(--text3);margin-bottom:12px">
+          Score: % ataques completados (60%) + donaciones (40%)
+        </p>
+        ${!top10.length
+          ? '<div class="empty">Sin datos suficientes aún.</div>'
+          : '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Jugador</th><th>Clan</th><th>Atq. War</th><th>Donaciones</th><th>Score</th></tr></thead><tbody>' +
+            top10.map((m, i) => {
+              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)+'.';
+              const sc = m.score >= 80 ? 'var(--success-light)' : m.score >= 50 ? 'var(--warn-light)' : 'var(--danger-light)';
+              return '<tr>' +
+                '<td style="text-align:center;font-size:15px">' + medal + '</td>' +
+                '<td class="n"><div class="fl-row"><div class="av av' + m.av + '">' + m.name.slice(0,2).toUpperCase() + '</div>' + m.name + '</div></td>' +
+                '<td><span class="badge b-gray" style="border-left:3px solid ' + m.clanColor + '">' + m.clanName + '</span></td>' +
+                '<td>' + (m.warAttacks||0) + '/' + ((m.warTotal||0)*2) + '<div class="prog" style="min-width:60px"><div class="prog-bar ' + (m.atkRate>=100?'g':'') + '" style="width:' + Math.min(m.atkRate,100) + '%"></div></div></td>' +
+                '<td>' + (m.donTotal||0) + ((m.donTotal||0)>=1000?' <span style="color:#EF9F27">★</span>':'') + '</td>' +
+                '<td><span style="font-size:14px;font-weight:700;color:' + sc + '">' + m.score + '</span><div class="prog" style="min-width:50px"><div class="prog-bar" style="width:' + m.score + '%;background:' + sc + '"></div></div></td>' +
+                '</tr>';
+            }).join('') +
+            '</tbody></table></div>'}`;
+    }
+
     const acts = Store.getActivity().slice(-6).reverse();
     document.getElementById('activity-list').innerHTML = acts.length
       ? `<div class="tbl-wrap"><table class="tbl">
