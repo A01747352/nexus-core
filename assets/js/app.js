@@ -227,9 +227,8 @@ const App = (() => {
       const meta = Store.CLANS_META.find(c => c.id === id);
       Store.getMembers(id).forEach(m => {
         if ((m.warTotal || 0) === 0 && (m.donTotal || 0) === 0) return;
-        const atkRate = m.warTotal > 0 ? Math.round((m.warAttacks || 0) / (m.warTotal * 2) * 100) : 0;
-        const score   = Math.round((atkRate * 0.6) + (Math.min((m.donTotal || 0) / 10, 40)));
-        allMembers.push({ ...m, clanName: meta.name, clanColor: meta.color, av: meta.av, atkRate, score });
+        const score = m.donTotal || 0;
+        allMembers.push({ ...m, clanName: meta.name, clanColor: meta.color, av: meta.av, score });
       });
     });
     allMembers.sort((a, b) => b.score - a.score);
@@ -242,11 +241,11 @@ const App = (() => {
           <span class="badge b-gold">Top 10 · todos los clanes</span>
         </div>
         <p style="font-size:12px;color:var(--text3);margin-bottom:12px">
-          Score: % ataques completados (60%) + donaciones (40%)
+          Ordenado por total de donaciones acumuladas en el mes
         </p>
         ${!top10.length
           ? '<div class="empty">Sin datos suficientes aún.</div>'
-          : '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Jugador</th><th>Clan</th><th>Atq. War</th><th>Donaciones</th><th>Score</th></tr></thead><tbody>' +
+          : '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>#</th><th>Jugador</th><th>Clan</th><th>Donaciones</th><th>Total</th></tr></thead><tbody>' +
             top10.map((m, i) => {
               const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i+1)+'.';
               const sc = m.score >= 80 ? 'var(--success-light)' : m.score >= 50 ? 'var(--warn-light)' : 'var(--danger-light)';
@@ -254,8 +253,7 @@ const App = (() => {
                 '<td style="text-align:center;font-size:15px">' + medal + '</td>' +
                 '<td class="n"><div class="fl-row"><div class="av av' + m.av + '">' + m.name.slice(0,2).toUpperCase() + '</div>' + m.name + '</div></td>' +
                 '<td><span class="badge b-gray" style="border-left:3px solid ' + m.clanColor + '">' + m.clanName + '</span></td>' +
-                '<td>' + (m.warAttacks||0) + '/' + ((m.warTotal||0)*2) + '<div class="prog" style="min-width:60px"><div class="prog-bar ' + (m.atkRate>=100?'g':'') + '" style="width:' + Math.min(m.atkRate,100) + '%"></div></div></td>' +
-                '<td>' + (m.donTotal||0) + ((m.donTotal||0)>=1000?' <span style="color:#EF9F27">★</span>':'') + '</td>' +
+                '<td style="font-size:15px;font-weight:700;color:var(--gold)">' + (m.donTotal||0) + ((m.donTotal||0)>=1000?' <span style="color:#EF9F27">★</span>':'') + '</td>' +
                 '<td><span style="font-size:14px;font-weight:700;color:' + sc + '">' + m.score + '</span><div class="prog" style="min-width:50px"><div class="prog-bar" style="width:' + m.score + '%;background:' + sc + '"></div></div></td>' +
                 '</tr>';
             }).join('') +
@@ -278,7 +276,7 @@ const App = (() => {
       : '<div class="empty">Los cambios del sistema aparecerán aquí.</div>';
 
     document.getElementById('dash-actions').innerHTML = Auth.isSuper()
-      ? '<button class="btn btn-primary btn-sm" onclick="App.goPage(\'sorteo\')">Sorteo del mes</button>'
+      ? '<button class="btn btn-primary btn-sm" onclick="App.goPage(\'sorteo\')">Sorteo del mes</button> <button class="btn btn-sm" style="border-color:var(--danger-bg);color:var(--danger-light)" onclick="App.openResetModal()">Reset mensual</button>'
       : '';
   }
 
