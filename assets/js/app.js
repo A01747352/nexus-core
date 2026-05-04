@@ -805,6 +805,114 @@ const App = (() => {
     renderWarPage(war); // pasar guerra para precargar form
   }
 
+
+  // ── Reset mensual ─────────────────────────────────────────
+  function openResetModal() {
+    // Calcular stats actuales para mostrar qué se va a borrar
+    const stats = Store.getGlobalStats();
+    let totalWars = 0, totalDon = 0, totalAtk = 0;
+    Store.CLAN_IDS.forEach(id => {
+      Store.getMembers(id).forEach(m => {
+        totalWars += (m.warTotal || 0);
+        totalAtk  += (m.warAttacks || 0);
+        totalDon  += (m.donTotal || 0);
+      });
+    });
+
+    const now = new Date();
+    const mes = now.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+
+    document.getElementById('reset-summary').innerHTML = `
+      <div style="background:var(--danger-bg);border:1px solid var(--danger);border-radius:var(--r);padding:12px 14px;margin-bottom:16px">
+        <div style="font-size:13px;font-weight:600;color:var(--danger-light);margin-bottom:8px">⚠️ Esto reseteará los siguientes contadores de TODOS los miembros:</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.8">
+          · Ataques en War: <strong style="color:var(--text)">${totalAtk} ataques en ${totalWars} guerras</strong><br>
+          · Donaciones: <strong style="color:var(--text)">${totalDon} donaciones acumuladas</strong><br>
+          · Ataques CWL y espejos
+        </div>
+      </div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">
+        Se guardará un backup de <strong style="color:var(--text)">${mes}</strong> en Google Sheets antes de limpiar.
+        El historial de guerras <strong style="color:var(--text)">no se borra</strong>.
+      </p>
+      <div class="fg">
+        <label class="fl" style="color:var(--danger-light)">Escribe CONFIRMAR para continuar</label>
+        <input class="fi" type="text" id="reset-confirm-input" placeholder="CONFIRMAR"
+          oninput="document.getElementById('reset-exec-btn').disabled = this.value !== 'CONFIRMAR'">
+      </div>`;
+
+    document.getElementById('reset-exec-btn').disabled = true;
+    document.getElementById('reset-confirm-input') && (document.getElementById('reset-confirm-input').value = '');
+    openModal('modal-reset');
+  }
+
+  async function executeReset() {
+    const input = document.getElementById('reset-confirm-input').value;
+    if (input !== 'CONFIRMAR') return;
+
+    const btn = document.getElementById('reset-exec-btn');
+    btn.disabled = true;
+    btn.textContent = 'Guardando backup...';
+
+    try {
+      const now  = new Date();
+      const mes  = now.toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+
+      // Guardar backup en Sheets antes de limpiar
+      if (API.isConnected()) {
+        await Promise.all(Store.CLAN_IDS.map(id => {
+          const members = Store.getMembers(id).map(m => ({
+            ...m,
+            _backupMes: mes,
+            _backupFecha: now.toLocaleDateString('es-MX'),
+          }));
+          return API.saveActivity({
+            action: `Backup ${mes} — ${id}: ${members.length} miembros`,
+            clan: id,
+            user: Auth.getSession()?.name || '—',
+            date: now.toLocaleDateString('es-MX'),
+          });
+        }));
+      }
+
+      btn.textContent = 'Reseteando...';
+
+      // Resetear contadores de todos los miembros
+      Store.CLAN_IDS.forEach(id => {
+        const members = Store.getMembers(id).map(m => ({
+          ...m,
+          warTotal:    0,
+          warAttacks:  0,
+          cwlTotal:    0,
+          cwlAtkTotal: 0,
+          cwlMirrors:  0,
+          donTotal:    0,
+          donWeek:     0,
+        }));
+        Store.setMembers(id, members);
+      });
+
+      // Guardar en Sheets
+      if (API.isConnected()) {
+        await Promise.all(Store.CLAN_IDS.map(id =>
+          API.saveMembersWithLog(id, Store.getMembers(id),
+            'Reset mensual ' + mes, Auth.getSession()?.name)
+        ));
+      }
+
+      Store.logActivity('Reset mensual: ' + mes, 'todos');
+      closeModal('modal-reset');
+      showToast('✓ Reset mensual completado — ' + mes);
+      renderDashboard();
+
+    } catch(e) {
+      alert('Error durante el reset: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Ejecutar reset';
+    }
+  }
+
   // ── Ver detalle de guerra ──────────────────────────────────
   function showWarDetail(clanId, warIndex) {
     const wars = Store.getWars(clanId);
@@ -1008,6 +1116,8 @@ const App = (() => {
     closeModal,
     showWarDetail,
     openWarEdit,
+    openResetModal,
+    executeReset,
     // Borrar / Mover
     confirmDeleteMember,
     confirmDeleteWar,

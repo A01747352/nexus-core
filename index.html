@@ -442,6 +442,24 @@
 </div>
 
 
+
+<!-- Reset mensual -->
+<div class="modal-overlay" id="modal-reset">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-title" style="color:var(--danger-light)">⚠️ Reset mensual</div>
+    <div class="modal-sub">Solo el super líder puede ejecutar esta acción</div>
+    <div id="reset-summary"></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="App.closeModal('modal-reset')">Cancelar</button>
+      <button id="reset-exec-btn" class="btn" disabled
+        style="background:var(--danger-bg);border-color:var(--danger);color:var(--danger-light)"
+        onclick="App.executeReset()">
+        Ejecutar reset
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Detalle de guerra -->
 <div class="modal-overlay" id="modal-war-detail">
   <div class="modal" style="max-width:560px">
@@ -485,104 +503,6 @@
   </div>
 </div>
 
-
-<!-- Editar miembro -->
-<div class="modal-overlay" id="modal-edit-member">
-  <div class="modal" style="max-width:500px">
-    <div class="modal-title">Editar miembro</div>
-    <div class="modal-sub" id="modal-edit-member-clan">Clan</div>
-    <input type="hidden" id="em-clan">
-    <input type="hidden" id="em-id">
-    <div class="form-grid-2" style="margin-bottom:12px">
-      <div class="fg" style="grid-column:1/-1">
-        <label class="fl">Nombre en juego</label>
-        <input class="fi" type="text" id="em-name" placeholder="ej. ShadowWolf">
-      </div>
-      <div class="fg">
-        <label class="fl">Tag de CoC</label>
-        <input class="fi" type="text" id="em-tag" placeholder="#ABC123">
-      </div>
-      <div class="fg">
-        <label class="fl">Rol</label>
-        <select class="fi" id="em-role">
-          <option>Miembro</option>
-          <option>Colidér</option>
-          <option>Líder</option>
-        </select>
-      </div>
-    </div>
-    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3);margin-bottom:10px;padding-top:4px;border-top:1px solid var(--border)">Estadísticas</div>
-    <div class="form-grid-2" style="margin-bottom:12px">
-      <div class="fg">
-        <label class="fl">Guerras participadas</label>
-        <input class="fi" type="number" id="em-wartotal" min="0">
-      </div>
-      <div class="fg">
-        <label class="fl">Ataques War (total)</label>
-        <input class="fi" type="number" id="em-warattacks" min="0">
-      </div>
-      <div class="fg">
-        <label class="fl">Temporadas CWL</label>
-        <input class="fi" type="number" id="em-cwltotal" min="0">
-      </div>
-      <div class="fg">
-        <label class="fl">Ataques CWL (total)</label>
-        <input class="fi" type="number" id="em-cwlatktotal" min="0">
-      </div>
-      <div class="fg">
-        <label class="fl">Espejos CWL</label>
-        <input class="fi" type="number" id="em-cwlmirrors" min="0">
-      </div>
-      <div class="fg">
-        <label class="fl">Donaciones totales</label>
-        <input class="fi" type="number" id="em-dontotal" min="0">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="App.closeModal('modal-edit-member')">Cancelar</button>
-      <button id="em-save-btn" class="btn btn-primary" onclick="App.confirmEditMember()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Editar rotación -->
-<div class="modal-overlay" id="modal-edit-rot">
-  <div class="modal">
-    <div class="modal-title">Editar rotación</div>
-    <div class="modal-sub">Capital Raid — fin de semana</div>
-    <input type="hidden" id="er-index">
-    <div class="form-grid-2" style="margin-bottom:12px">
-      <div class="fg">
-        <label class="fl">Fecha</label>
-        <input class="fi" type="date" id="er-date">
-      </div>
-      <div class="fg">
-        <label class="fl">Tag del jugador</label>
-        <input class="fi" type="text" id="er-tag" placeholder="#ABC123">
-      </div>
-      <div class="fg" style="grid-column:1/-1">
-        <label class="fl">Nombre en juego</label>
-        <input class="fi" type="text" id="er-name" placeholder="Nombre del jugador">
-      </div>
-      <div class="fg">
-        <label class="fl">Clan de origen</label>
-        <select class="fi" id="er-from"></select>
-      </div>
-      <div class="fg">
-        <label class="fl">Clan visitado</label>
-        <select class="fi" id="er-to"></select>
-      </div>
-      <div class="fg" style="grid-column:1/-1">
-        <label class="fl">Donaciones en clan visitado</label>
-        <input class="fi" type="number" id="er-don" placeholder="0" min="0">
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn" onclick="App.closeModal('modal-edit-rot')">Cancelar</button>
-      <button id="er-save-btn" class="btn btn-primary" onclick="App.confirmEditRotation()">Guardar cambios</button>
-    </div>
-  </div>
-</div>
 
 <!-- ══════════════════════════════════════════════
      SCRIPTS — orden de carga importante
