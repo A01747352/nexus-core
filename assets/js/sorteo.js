@@ -12,8 +12,9 @@ const Sorteo = (() => {
 
   // ── Criterios de elegibilidad ─────────────────────────────
   const CRITERIA = {
-    MIN_DONATIONS: 1000,
+    MIN_WARS: 9,             // mínimo de guerras jugadas en el mes
     MIN_WAR_COMPLETION: 0.7, // 70% de ataques realizados
+    MIN_DONATIONS: 1000,
   };
 
   const PRIZES = [
@@ -35,13 +36,15 @@ const Sorteo = (() => {
   // Razón por la que un miembro NO es apto (para mostrar en UI)
   function getIneligibleReason(member) {
     const reasons = [];
-    if ((member.warTotal || 0) === 0) {
-      reasons.push('No participó en ninguna guerra');
+    const wars = member.warTotal || 0;
+    if (wars < CRITERIA.MIN_WARS) {
+      const missing = CRITERIA.MIN_WARS - wars;
+      reasons.push(`Le faltan ${missing} guerra${missing > 1 ? 's' : ''} (mín. ${CRITERIA.MIN_WARS})`);
     } else {
-      const completion = (member.warAttacks || 0) / ((member.warTotal || 0) * 2);
+      const completion = (member.warAttacks || 0) / (wars * 2);
       if (completion < CRITERIA.MIN_WAR_COMPLETION) {
-        const missing = (member.warTotal * 2) - (member.warAttacks || 0);
-        reasons.push(`Le faltan ${missing} ataque${missing > 1 ? 's' : ''} en war`);
+        const missing = Math.ceil(wars * 2 * CRITERIA.MIN_WAR_COMPLETION) - (member.warAttacks || 0);
+        reasons.push(`Le faltan ${missing} ataque${missing > 1 ? 's' : ''} en war (70%)`);
       }
     }
     if ((member.donTotal || 0) < CRITERIA.MIN_DONATIONS) {

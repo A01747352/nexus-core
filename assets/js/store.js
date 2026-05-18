@@ -179,8 +179,8 @@ const Store = (() => {
   // Verifica si un miembro cumple criterios para el sorteo
   function isEligible(member) {
     return (
-      (member.warTotal || 0) > 0 &&
-      (member.warAttacks || 0) >= (member.warTotal || 0) &&
+      (member.warTotal || 0) >= 9 &&
+      (member.warAttacks || 0) / ((member.warTotal || 0) * 2) >= 0.7 &&
       (member.donTotal || 0) >= 1000
     );
   }
