@@ -516,6 +516,7 @@ const App = (() => {
   }
 
   async function saveWarFull() {
+    const isEdit = War.getEditIndex() !== null;
     const result = {
       date:      document.getElementById('war-res-date')?.value || new Date().toISOString().split('T')[0],
       type:      document.getElementById('war-res-type')?.value || 'war',
@@ -523,9 +524,20 @@ const App = (() => {
       starsUs:   document.getElementById('war-res-us')?.value || '',
       starsThem: document.getElementById('war-res-them')?.value || '',
     };
-    await War.saveWarFull(result);
-    showToast('✓ Guerra guardada correctamente');
-    setTimeout(() => goPage('clan'), 2000);
+    try {
+      await War.saveWarFull(result);
+      showToast('✓ Guerra guardada correctamente');
+      setTimeout(() => goPage('clan'), 2000);
+    } catch(e) {
+      showToast('Error al guardar — verifica la conexión e intenta de nuevo');
+      const btn = document.getElementById('war-save-btn');
+      if (btn) {
+        btn.disabled    = false;
+        btn.textContent = isEdit ? 'Guardar cambios' : 'Guardar todo';
+        btn.style.opacity = '';
+        btn.style.cursor  = '';
+      }
+    }
   }
 
   async function saveWarReg() {
@@ -641,12 +653,12 @@ const App = (() => {
     try {
       const res = await Donations.saveWeek();
       showToast(res.ok ? '✓ Donaciones guardadas' : '✓ Sin cambios nuevos');
+      setTimeout(() => goPage('clan'), 1800);
     } catch(e) {
-      showToast('Error al guardar');
+      showToast('Error al guardar — verifica la conexión e intenta de nuevo');
     } finally {
       if (btn) { btn.disabled = false; btn.textContent = 'Guardar semana'; }
     }
-    setTimeout(() => goPage('clan'), 1800);
   }
 
   // ── Rotaciones Page ───────────────────────────────────────
@@ -1036,15 +1048,12 @@ const App = (() => {
   }
 
   function confirmDeleteWar(clanId, warDisplayIndex) {
-    // warDisplayIndex es el índice en el array revertido — convertir al real
     const wars = Store.getWars(clanId);
     const realIndex = wars.length - 1 - warDisplayIndex;
     if (!confirm('¿Borrar este resultado de guerra? Esta acción no se puede deshacer.')) return;
-    const newWars = Store.getWars(clanId).filter((_, i) => i !== realIndex);
-    Store.setWars(clanId, newWars);
+    War.deleteWar(clanId, realIndex); // War.deleteWar actualiza el store y llama al API
     renderClan();
     showToast('✓ Guerra eliminada');
-    War.deleteWar(clanId, realIndex);
   }
 
   function confirmResetDonations(clanId, memberId) {
@@ -1063,22 +1072,27 @@ const App = (() => {
     const name = document.getElementById('nm-name').value.trim();
     if (!name) { alert('El nombre es requerido.'); return; }
 
-    const tag  = document.getElementById('nm-tag').value.trim().toUpperCase();
-    const role = document.getElementById('nm-role').value;
+    const tag    = document.getElementById('nm-tag').value.trim().toUpperCase();
+    const role   = document.getElementById('nm-role').value;
     const clanId = Store.getUI().activeClan;
 
     Store.addMember(clanId, { name, tag: tag || '—', role });
+    const newMember = Store.getMembers(clanId).slice(-1)[0];
     Store.logActivity(`Nuevo miembro: ${name}`, clanId);
 
-    await API.saveMembersWithLog(
-      clanId,
-      Store.getMembers(clanId),
-      `Nuevo miembro: ${name}`,
-      Auth.getSession()?.name
-    );
-
-    closeModal('modal-member');
-    renderClan();
+    try {
+      await API.saveMembersWithLog(
+        clanId,
+        Store.getMembers(clanId),
+        `Nuevo miembro: ${name}`,
+        Auth.getSession()?.name
+      );
+      closeModal('modal-member');
+      renderClan();
+    } catch(e) {
+      Store.setMembers(clanId, Store.getMembers(clanId).filter(m => m.id !== newMember.id));
+      showToast('Error al guardar — verifica la conexión e intenta de nuevo');
+    }
   }
 
   // ── War result modal ──────────────────────────────────────

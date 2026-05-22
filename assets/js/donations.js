@@ -44,7 +44,8 @@ const Donations = (() => {
 
   // ── Guardar semana ────────────────────────────────────────
   async function saveWeek() {
-    const members = Store.getMembers(_activeClan);
+    const members  = Store.getMembers(_activeClan);
+    const snapshot = members.map(m => ({ ...m }));
     let changed = false;
 
     members.forEach(m => {
@@ -59,17 +60,20 @@ const Donations = (() => {
 
     Store.setMembers(_activeClan, members);
     Store.logActivity(`Donaciones ${getCurrentWeek().label}`, _activeClan);
-    _state = {};
 
-    if (API.isConnected()) {
+    try {
       await API.saveMembersWithLog(
         _activeClan,
         members,
         `Donaciones ${getCurrentWeek().label}`,
         Auth.getSession()?.name
       );
+    } catch(e) {
+      Store.setMembers(_activeClan, snapshot); // revertir — el form sigue con los datos
+      throw e;
     }
 
+    _state = {};
     return { ok: true };
   }
 

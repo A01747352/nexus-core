@@ -74,25 +74,24 @@ const War = (() => {
 
     const members = Store.getMembers(_activeClan);
 
-    // 1. Acumular ataques por miembro
-    const participants = [];
-    members.forEach(m => {
+    // Calcular miembros actualizados sin mutar el store todavía
+    const updatedMembers = members.map(m => {
       const s = _warState[m.id] || {};
-      if (s.entered) {
-        m.warTotal   = (m.warTotal   || 0) + 1;
-        m.warAttacks = (m.warAttacks || 0) + (s.attacks || 0);
-        participants.push(m.name);
-      }
+      if (!s.entered) return m;
+      return {
+        ...m,
+        warTotal:   (m.warTotal   || 0) + 1,
+        warAttacks: (m.warAttacks || 0) + (s.attacks || 0),
+      };
     });
 
-    // 2. Guardar resultado con roster detallado de participantes
     const roster = members.map(m => {
       const s = _warState[m.id] || {};
       return {
         id:      m.id,
         name:    m.name,
         tag:     m.tag || '',
-        entered: s.entered ? true : false,
+        entered: !!s.entered,
         attacks: s.entered ? (s.attacks || 0) : 0,
       };
     });
@@ -106,33 +105,48 @@ const War = (() => {
       roster:    JSON.stringify(roster),
     };
 
-    Store.setMembers(_activeClan, members);
+    const isEdit        = _editIndex !== null;
+    const savedEditIdx  = _editIndex;
+    const label         = _resultLabel(war.result);
 
-    // Si es edición reemplazar, si es nueva agregar
-    if (_editIndex !== null) {
-      const wars = Store.getWars(_activeClan);
-      wars[_editIndex] = war;
-      Store.setWars(_activeClan, wars);
-      Store.logActivity('Guerra editada: ' + _resultLabel(war.result), _activeClan);
+    // Para edición: construir el array completo de guerras actualizado
+    const updatedWars = isEdit
+      ? Store.getWars(_activeClan).map((w, i) => i === savedEditIdx ? war : w)
+      : null;
+
+    // API primero — si falla, el store no se toca y el usuario puede reintentar
+    try {
+      if (isEdit) {
+        await Promise.all([
+          API.saveMembersWithLog(_activeClan, updatedMembers, `Guerra editada: ${label}`, Auth.getSession()?.name),
+          API.replaceWars(_activeClan, updatedWars),
+        ]);
+      } else {
+        await Promise.all([
+          API.saveMembersWithLog(_activeClan, updatedMembers, `Guerra registrada: ${label}`, Auth.getSession()?.name),
+          API.saveWar(_activeClan, war),
+        ]);
+      }
+    } catch(e) {
+      _saving = false;
+      throw e;
+    }
+
+    // API OK — actualizar store local
+    Store.setMembers(_activeClan, updatedMembers);
+
+    if (isEdit) {
+      Store.setWars(_activeClan, updatedWars);
+      Store.logActivity('Guerra editada: ' + label, _activeClan);
     } else {
       Store.addWar(_activeClan, war);
-      Store.logActivity('Guerra registrada: ' + _resultLabel(war.result), _activeClan);
+      Store.logActivity('Guerra registrada: ' + label, _activeClan);
     }
 
     _warState   = {};
     _editIndex  = null;
     _editClanId = null;
-
-    try {
-      await Promise.all([
-        API.saveMembersWithLog(_activeClan, members, `Guerra registrada: ${_resultLabel(war.result)}`, Auth.getSession()?.name),
-        API.saveWar(_activeClan, war),
-      ]);
-    } catch(e) {
-      console.error('Error guardando guerra:', e);
-    }
-
-    _saving = false;
+    _saving     = false;
   }
 
   // ── CWL Registration ──────────────────────────────────────
