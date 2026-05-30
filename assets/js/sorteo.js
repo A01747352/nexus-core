@@ -12,8 +12,8 @@ const Sorteo = (() => {
 
   // ── Criterios de elegibilidad ─────────────────────────────
   const CRITERIA = {
-    MIN_WARS: 6,             // mínimo de guerras jugadas en el mes
-    MIN_WAR_COMPLETION: 0.7, // 70% de ataques realizados
+    MIN_WARS: 4,             // mínimo de guerras jugadas en el mes
+    MIN_WAR_COMPLETION: 0.6, // 60% de ataques realizados
     MIN_DONATIONS: 1000,
   };
 
@@ -44,7 +44,7 @@ const Sorteo = (() => {
       const completion = (member.warAttacks || 0) / (wars * 2);
       if (completion < CRITERIA.MIN_WAR_COMPLETION) {
         const missing = Math.ceil(wars * 2 * CRITERIA.MIN_WAR_COMPLETION) - (member.warAttacks || 0);
-        reasons.push(`Le faltan ${missing} ataque${missing > 1 ? 's' : ''} en war (70%)`);
+        reasons.push(`Le faltan ${missing} ataque${missing > 1 ? 's' : ''} en war (60%)`);
       }
     }
     if ((member.donTotal || 0) < CRITERIA.MIN_DONATIONS) {
