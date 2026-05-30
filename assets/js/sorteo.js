@@ -14,7 +14,7 @@ const Sorteo = (() => {
   const CRITERIA = {
     MIN_WARS: 4,             // mínimo de guerras jugadas en el mes
     MIN_WAR_COMPLETION: 0.6, // 60% de ataques realizados
-    MIN_DONATIONS: 1000,
+    MIN_DONATIONS: 500,
   };
 
   const PRIZES = [
