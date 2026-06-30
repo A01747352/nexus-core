@@ -13,7 +13,7 @@ const Sorteo = (() => {
   // ── Criterios de elegibilidad ─────────────────────────────
   const CRITERIA = {
     MIN_WARS: 0,             // mínimo de guerras jugadas en el mes
-    MIN_WAR_COMPLETION: 0.6, // 60% de ataques realizados
+    MIN_WAR_COMPLETION: 0, // 60% de ataques realizados
     MIN_DONATIONS: 500,
   };
 
